@@ -29,19 +29,32 @@ export default function Canvas() {
     }, []);
 
     const addNode = () => {
+        // Create array of nodeIds existing in network
+        let nodeIds = nodesData.map((node) => node.id);
+
+        // Do nothing if max number of nodes allowed in network
+        if (nodeIds.length === Math.pow(2, M)) return;
+
+        // Generate a new id until a new unused one is generated
         let id = Math.floor(Math.random() * Math.pow(2, M));
+        while (nodeIds.includes(id))
+            id = Math.floor(Math.random() * Math.pow(2, M));
+
+        // Calculate coordinates
         let coords = {
             x: r * Math.cos(id * theta - Math.PI / 2) + 500,
             y: r * Math.sin(id * theta - Math.PI / 2) + 500,
         };
 
-        let newNode: ChordNode = {
-            id,
-            coords,
-            fingerTable: generateFingerTable(id),
-        };
-
-        setNodesData([...nodesData, newNode]);
+        // Add new node to nodesData
+        setNodesData([
+            ...nodesData,
+            {
+                id,
+                coords,
+                fingerTable: generateFingerTable(id),
+            },
+        ]);
     };
 
     const generateFingerTable = (nodeId: number) => {
