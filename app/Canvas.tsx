@@ -154,15 +154,56 @@ export default function Canvas() {
             .selectAll('.nodes')
             .data(nodesData)
             .join('circle')
+            .attr('id', (d) => 'id' + d.id)
             .attr('cx', (d) => d.coords.x)
             .attr('cy', (d) => d.coords.y)
             .attr('r', 20)
-            .style('fill', 'blue');
+            .style('fill', 'blue')
+            .on('mouseover', (e, d) => {
+                // Change color of node circle
+                select('#id' + d.id).style('fill', 'red');
+
+                // Header row of finger table
+                nodes
+                    .append('text')
+                    .text('Start - Successor')
+                    .attr('fill', 'white')
+                    .attr('id', 'text' + d.id)
+                    .attr('x', d.coords.x + 50)
+                    .attr('y', d.coords.y - 70);
+
+                // Each row of finger table
+                for (let i = 0; i < d.fingerTable.length; i++) {
+                    nodes
+                        .append('text')
+                        .text(
+                            `${d.fingerTable[i].start}  -  ${d.fingerTable[i].successor}`
+                        )
+                        .attr('fill', 'white')
+                        .attr('id', 'text' + d.id)
+                        .attr('x', d.coords.x + 50)
+                        .attr('y', d.coords.y - 40 + 30 * i);
+                }
+            })
+            .on('mouseout', (e, d) => {
+                select('#id' + d.id).style('fill', 'blue');
+                nodes.selectAll('text').remove();
+            });
+
+        // Remove elements when nodesData changes
+        return () => {
+            svg.selectAll('.nodes').remove();
+        };
     }, [nodesData]);
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <svg width="1000" height="1000" ref={svgRef} />
+            <svg
+                width="1000"
+                height="1000"
+                ref={svgRef}
+                style={{ overflow: 'visible' }}
+            />
 
             <button onClick={addNode}>Add node</button>
             <input
