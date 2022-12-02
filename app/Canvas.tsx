@@ -13,12 +13,21 @@ interface ChordNode {
 }
 
 export default function Canvas() {
+    // Chord
+    // Ticks around Chord chart circle
     const [ticks, setTicks] = useState<Array<String>>([]);
+    // Data about nodes in network
     const [nodesData, setNodesData] = useState<Array<ChordNode>>([]);
-    const svgRef: any = useRef();
+    // M used to calculate possible id space 2 ^ M
     const [M, setM] = useState<number>(3);
+
+    // Chart
+    // Quantized angle increments for polar coordinates
     const theta = (2 * Math.PI) / Math.pow(2, M);
+    // Radius from center the Chord graph's circle is
     const r = 400;
+
+    const svgRef: any = useRef();
 
     // Delete nodesData when M is changed
     useEffect(() => {
