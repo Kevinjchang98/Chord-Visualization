@@ -204,17 +204,24 @@ export default function Canvas() {
                     nodes
                         .append('path')
                         .attr('stroke', 'red')
+                        .attr('stroke-width', '2px')
                         .attr('fill', 'transparent')
                         .attr(
+                            // TODO: Let user choose curve type
                             'd',
-                            `M ${d.coords.x} ${d.coords.y} 
-                            L ${getCoordinates(d.fingerTable[i].start).x} ${
-                                getCoordinates(d.fingerTable[i].start).y
-                            } 
-                            L ${getCoordinates(d.fingerTable[i].successor).x} ${
-                                getCoordinates(d.fingerTable[i].successor).y
-                            }`
+                            `M ${d.coords.x} ${d.coords.y}
+                            Q ${getCoordinates(d.fingerTable[i].start).x} 
+                              ${getCoordinates(d.fingerTable[i].start).y}
+                              ${getCoordinates(d.fingerTable[i].successor).x}
+                              ${getCoordinates(d.fingerTable[i].successor).y}`
                         );
+                    // .attr(
+                    //     'd',
+                    //     `M ${d.coords.x} ${d.coords.y}
+                    //     Q 500 500 ${
+                    //         getCoordinates(d.fingerTable[i].successor).x
+                    //     } ${getCoordinates(d.fingerTable[i].successor).y}`
+                    // );
                 }
             })
             .on('mouseout', (e, d) => {
