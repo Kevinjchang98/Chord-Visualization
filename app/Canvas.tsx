@@ -189,7 +189,8 @@ export default function Canvas() {
                     .attr('fill', 'var(--light3)')
                     .attr('id', 'text' + d.id)
                     .attr('x', d.coords.x + 50)
-                    .attr('y', d.coords.y - 70);
+                    .attr('y', d.coords.y - 70)
+                    .attr('pointer-events', 'none');
 
                 // Each row of finger table
                 for (let i = 0; i < d.fingerTable.length; i++) {
@@ -202,7 +203,8 @@ export default function Canvas() {
                         .attr('fill', 'var(--light3)')
                         .attr('id', 'text' + d.id)
                         .attr('x', d.coords.x + 50)
-                        .attr('y', d.coords.y - 40 + 30 * i);
+                        .attr('y', d.coords.y - 40 + 30 * i)
+                        .attr('pointer-events', 'none');
 
                     nodes
                         .append('path')
@@ -217,7 +219,8 @@ export default function Canvas() {
                               ${getCoordinates(d.fingerTable[i].start).y}
                               ${getCoordinates(d.fingerTable[i].successor).x}
                               ${getCoordinates(d.fingerTable[i].successor).y}`
-                        );
+                        )
+                        .attr('pointer-events', 'none');
                     // .attr(
                     //     'd',
                     //     `M ${d.coords.x} ${d.coords.y}
