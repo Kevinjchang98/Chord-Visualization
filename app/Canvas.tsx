@@ -128,7 +128,8 @@ export default function Canvas() {
             .attr('cx', '50%')
             .attr('cy', '50%')
             .attr('r', r)
-            .style('stroke', 'white');
+            .style('stroke', 'var(--light3)')
+            .style('fill', 'transparent');
 
         const axisTicks = svg.append('g').attr('class', 'axisTicks');
 
@@ -153,7 +154,9 @@ export default function Canvas() {
                 'y2',
                 (d, i) => (r + 10) * Math.sin(i * theta - Math.PI / 2) + 500
             )
-            .style('stroke', (d) => (d === '' ? 'white' : 'red'));
+            .style('stroke', (d) =>
+                d === '' ? 'var(--light3)' : 'var(--red)'
+            );
 
         // Remove all elements when needing to regenerate
         return () => {
@@ -174,16 +177,16 @@ export default function Canvas() {
             .attr('cx', (d) => d.coords.x)
             .attr('cy', (d) => d.coords.y)
             .attr('r', 20)
-            .style('fill', 'blue')
+            .style('fill', 'var(--blue4)')
             .on('mouseover', (e, d) => {
                 // Change color of node circle
-                select('#id' + d.id).style('fill', 'red');
+                select('#id' + d.id).style('fill', 'var(--red)');
 
                 // Header row of finger table
                 nodes
                     .append('text')
                     .text('Start - Successor')
-                    .attr('fill', 'white')
+                    .attr('fill', 'var(--light3)')
                     .attr('id', 'text' + d.id)
                     .attr('x', d.coords.x + 50)
                     .attr('y', d.coords.y - 70);
@@ -196,14 +199,14 @@ export default function Canvas() {
                         .text(
                             `${d.fingerTable[i].start}  -  ${d.fingerTable[i].successor}`
                         )
-                        .attr('fill', 'white')
+                        .attr('fill', 'var(--light3)')
                         .attr('id', 'text' + d.id)
                         .attr('x', d.coords.x + 50)
                         .attr('y', d.coords.y - 40 + 30 * i);
 
                     nodes
                         .append('path')
-                        .attr('stroke', 'red')
+                        .attr('stroke', 'var(--red)')
                         .attr('stroke-width', '2px')
                         .attr('fill', 'transparent')
                         .attr(
@@ -225,7 +228,7 @@ export default function Canvas() {
                 }
             })
             .on('mouseout', (e, d) => {
-                select('#id' + d.id).style('fill', 'blue');
+                select('#id' + d.id).style('fill', 'var(--blue4)');
                 nodes.selectAll('text').remove();
                 nodes.selectAll('path').remove();
             });

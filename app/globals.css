@@ -1,26 +1,38 @@
+:root {
+    --dark1: #2e3440;
+    --dark2: #3b4252;
+    --dark3: #434c5e;
+    --dark4: #4c566a;
+    --light1: #d8dee9;
+    --light2: #e5e9f0;
+    --light3: #eceff4;
+    --blue1: #8fbcbb;
+    --blue2: #88c0d0;
+    --blue3: #81a1c1;
+    --blue4: #5e81ac;
+    --red: #bf616a;
+    --orange: #d08770;
+    --yellow: #ebcb8b;
+    --green: #a3be8c;
+    --purple: #b48ead;
+}
+
 html,
 body {
-  padding: 0;
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen,
-    Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif;
+    color-scheme: dark;
+    color: var(--light1);
+    background: var(--dark1);
+    padding: 0;
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen,
+        Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif;
 }
 
 a {
-  color: inherit;
-  text-decoration: none;
+    color: inherit;
+    text-decoration: none;
 }
 
 * {
-  box-sizing: border-box;
-}
-
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
-  }
-  body {
-    color: white;
-    background: black;
-  }
+    box-sizing: border-box;
 }
