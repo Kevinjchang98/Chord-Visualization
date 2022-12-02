@@ -1,4 +1,3 @@
-import Image from 'next/image';
 import Canvas from './Canvas';
 import styles from './page.module.css';
 
