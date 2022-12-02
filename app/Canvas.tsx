@@ -55,22 +55,29 @@ export default function Canvas() {
         while (nodeIds.includes(id))
             id = Math.floor(Math.random() * Math.pow(2, M));
 
-        // Calculate coordinates
-        let coords = {
-            x: r * Math.cos(id * theta - Math.PI / 2) + 500,
-            y: r * Math.sin(id * theta - Math.PI / 2) + 500,
-        };
-
         // Add new node to nodesData
         setNodesData([
             ...nodesData,
             {
                 id,
-                coords,
-                fingerTable: generateFingerTable(id),
+                coords: getCoordinates(id),
+                fingerTable: [],
             },
         ]);
     };
+
+    // Refresh finger tables when nodes change
+    useEffect(() => {
+        setNodesData((prev) => {
+            let newData = prev;
+
+            for (let i = 0; i < newData.length; i++) {
+                newData[i].fingerTable = generateFingerTable(newData[i].id);
+            }
+
+            return newData;
+        });
+    }, [nodesData]);
 
     // Generates the finger table for a given nodeId
     const generateFingerTable = (nodeId: number) => {
@@ -183,6 +190,7 @@ export default function Canvas() {
 
                 // Each row of finger table
                 for (let i = 0; i < d.fingerTable.length; i++) {
+                    // Row text
                     nodes
                         .append('text')
                         .text(
@@ -192,11 +200,27 @@ export default function Canvas() {
                         .attr('id', 'text' + d.id)
                         .attr('x', d.coords.x + 50)
                         .attr('y', d.coords.y - 40 + 30 * i);
+
+                    nodes
+                        .append('path')
+                        .attr('stroke', 'red')
+                        .attr('fill', 'transparent')
+                        .attr(
+                            'd',
+                            `M ${d.coords.x} ${d.coords.y} 
+                            L ${getCoordinates(d.fingerTable[i].start).x} ${
+                                getCoordinates(d.fingerTable[i].start).y
+                            } 
+                            L ${getCoordinates(d.fingerTable[i].successor).x} ${
+                                getCoordinates(d.fingerTable[i].successor).y
+                            }`
+                        );
                 }
             })
             .on('mouseout', (e, d) => {
                 select('#id' + d.id).style('fill', 'blue');
                 nodes.selectAll('text').remove();
+                nodes.selectAll('path').remove();
             });
 
         // Remove elements when nodesData changes
@@ -204,6 +228,13 @@ export default function Canvas() {
             svg.selectAll('.nodes').remove();
         };
     }, [nodesData]);
+
+    const getCoordinates = (nodeId: number) => {
+        return {
+            x: r * Math.cos(nodeId * theta - Math.PI / 2) + 500,
+            y: r * Math.sin(nodeId * theta - Math.PI / 2) + 500,
+        };
+    };
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column' }}>
