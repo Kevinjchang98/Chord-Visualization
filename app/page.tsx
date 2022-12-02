@@ -1,4 +1,5 @@
 import Image from 'next/image';
+import Canvas from './Canvas';
 import styles from './page.module.css';
 
 export default function Home() {
@@ -6,6 +7,7 @@ export default function Home() {
         <div className={styles.container}>
             <main className={styles.main}>
                 <h1 className={styles.title}>Chord Visualization</h1>
+                <Canvas />
             </main>
         </div>
     );
