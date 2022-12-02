@@ -16,17 +16,23 @@ export default function Canvas() {
     const [ticks, setTicks] = useState<Array<String>>([]);
     const [nodesData, setNodesData] = useState<Array<ChordNode>>([]);
     const svgRef: any = useRef();
-    const M = 3;
-    const r = 400;
+    const [M, setM] = useState<number>(3);
     const theta = (2 * Math.PI) / Math.pow(2, M);
+    const r = 400;
 
+    // Delete nodesData when M is changed
+    useEffect(() => {
+        setNodesData([]);
+    }, [M]);
+
+    // Regenerate ticks array when M is changed
     useEffect(() => {
         let ticks = [];
         for (let i = 0; i < Math.pow(2, M); i++) {
             ticks.push('');
         }
         setTicks(ticks);
-    }, []);
+    }, [M]);
 
     const addNode = () => {
         // Create array of nodeIds existing in network
@@ -57,6 +63,7 @@ export default function Canvas() {
         ]);
     };
 
+    // Generates the finger table for a given nodeId
     const generateFingerTable = (nodeId: number) => {
         let fingerTable = [];
         let nodeIds = nodesData.map((node) => node.id);
@@ -94,6 +101,7 @@ export default function Canvas() {
         return fingerTable;
     };
 
+    // Draws graph axes and ticks
     useEffect(() => {
         const svg = select(svgRef.current);
 
@@ -111,7 +119,8 @@ export default function Canvas() {
         axisTicks
             .selectAll('.axisTicks')
             .data(ticks)
-            .join('line')
+            .enter()
+            .append('line')
             .attr(
                 'x1',
                 (d, i) => (r - 10) * Math.cos(i * theta - Math.PI / 2) + 500
@@ -129,7 +138,12 @@ export default function Canvas() {
                 (d, i) => (r + 10) * Math.sin(i * theta - Math.PI / 2) + 500
             )
             .style('stroke', (d) => (d === '' ? 'white' : 'red'));
-    }, [ticks]);
+
+        // Remove all elements when needing to regenerate
+        return () => {
+            svg.selectAll('g').remove();
+        };
+    }, [ticks, M]);
 
     useEffect(() => {
         const svg = select(svgRef.current);
@@ -151,6 +165,13 @@ export default function Canvas() {
             <svg width="1000" height="1000" ref={svgRef} />
 
             <button onClick={addNode}>Add node</button>
+            <input
+                type="number"
+                value={M}
+                onChange={(e) => {
+                    setM(parseInt(e.target.value));
+                }}
+            />
         </div>
     );
 }
