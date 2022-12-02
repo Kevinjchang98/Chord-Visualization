@@ -26,6 +26,8 @@ export default function Canvas() {
     const theta = (2 * Math.PI) / Math.pow(2, M);
     // Radius from center the Chord graph's circle is
     const r = 400;
+    // Type of curve for finger table lines
+    const [curveType, setCurveType] = useState<number>(0);
 
     const svgRef: any = useRef();
 
@@ -206,28 +208,64 @@ export default function Canvas() {
                         .attr('y', d.coords.y - 40 + 30 * i)
                         .attr('pointer-events', 'none');
 
+                    let curvePath;
+
+                    switch (curveType) {
+                        case 0:
+                            curvePath = `M ${d.coords.x} ${d.coords.y}
+                            Q 500 500
+                              ${getCoordinates(d.fingerTable[i].successor).x}
+                              ${getCoordinates(d.fingerTable[i].successor).y}`;
+
+                            break;
+
+                        case 1:
+                            curvePath = `M ${d.coords.x} ${d.coords.y}
+                            Q ${getCoordinates(d.fingerTable[i].start).x} 
+                              ${getCoordinates(d.fingerTable[i].start).y}
+                              ${getCoordinates(d.fingerTable[i].successor).x}
+                              ${getCoordinates(d.fingerTable[i].successor).y}`;
+
+                            break;
+
+                        case 2:
+                            curvePath = `M ${d.coords.x} ${d.coords.y}
+                            L ${getCoordinates(d.fingerTable[i].start).x} 
+                              ${getCoordinates(d.fingerTable[i].start).y}
+                            L
+                              ${getCoordinates(d.fingerTable[i].successor).x}
+                              ${getCoordinates(d.fingerTable[i].successor).y}`;
+
+                            break;
+
+                        case 3:
+                            curvePath = `M ${d.coords.x} ${d.coords.y}
+                            L
+                              ${getCoordinates(d.fingerTable[i].successor).x}
+                              ${getCoordinates(d.fingerTable[i].successor).y}`;
+
+                            break;
+
+                        case 4:
+                            curvePath = `M ${d.coords.x} ${d.coords.y}
+                            L
+                              ${getCoordinates(d.fingerTable[i].start).x}
+                              ${getCoordinates(d.fingerTable[i].start).y}`;
+
+                            break;
+
+                        default:
+                            curvePath = '';
+                            break;
+                    }
+
                     nodes
                         .append('path')
                         .attr('stroke', 'var(--red)')
                         .attr('stroke-width', '2px')
                         .attr('fill', 'transparent')
-                        .attr(
-                            // TODO: Let user choose curve type
-                            'd',
-                            `M ${d.coords.x} ${d.coords.y}
-                            Q ${getCoordinates(d.fingerTable[i].start).x} 
-                              ${getCoordinates(d.fingerTable[i].start).y}
-                              ${getCoordinates(d.fingerTable[i].successor).x}
-                              ${getCoordinates(d.fingerTable[i].successor).y}`
-                        )
+                        .attr('d', curvePath)
                         .attr('pointer-events', 'none');
-                    // .attr(
-                    //     'd',
-                    //     `M ${d.coords.x} ${d.coords.y}
-                    //     Q 500 500 ${
-                    //         getCoordinates(d.fingerTable[i].successor).x
-                    //     } ${getCoordinates(d.fingerTable[i].successor).y}`
-                    // );
                 }
             })
             .on('mouseout', (e, d) => {
@@ -240,7 +278,7 @@ export default function Canvas() {
         return () => {
             svg.selectAll('.nodes').remove();
         };
-    }, [nodesData]);
+    }, [nodesData, curveType]);
 
     const getCoordinates = (nodeId: number) => {
         return {
@@ -266,6 +304,13 @@ export default function Canvas() {
                     setM(parseInt(e.target.value));
                 }}
             />
+            <button
+                onClick={() => {
+                    setCurveType((curveType + 1) % 5);
+                }}
+            >
+                Change curve type {curveType}
+            </button>
         </div>
     );
 }
