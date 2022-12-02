@@ -6,7 +6,7 @@ import { select } from 'd3';
 export default function Canvas() {
     const svgRef: any = useRef();
 
-    const data = ['a', 'b', 'c', 'd', 'e', 'f'];
+    const data = ['a', 'b', 'c', 'd', 'e', 'f', 'f'];
 
     useEffect(() => {
         const svg = select(svgRef.current);
@@ -29,8 +29,8 @@ export default function Canvas() {
             .selectAll('.nodeCircles')
             .data(data)
             .join('circle')
-            .attr('cx', (d, i) => r * Math.cos(i * theta + Math.PI / 2) + 500)
-            .attr('cy', (d, i) => r * Math.sin(i * theta + Math.PI / 2) + 500)
+            .attr('cx', (d, i) => r * Math.cos(i * theta - Math.PI / 2) + 500)
+            .attr('cy', (d, i) => r * Math.sin(i * theta - Math.PI / 2) + 500)
             .attr('r', 25)
             .style('fill', 'blue');
     }, [data]);
