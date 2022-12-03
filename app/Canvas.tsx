@@ -20,6 +20,11 @@ export default function Canvas() {
     const [nodesData, setNodesData] = useState<Array<ChordNode>>([]);
     // M used to calculate possible id space 2 ^ M
     const [M, setM] = useState<number>(3);
+    // Query parameters
+    const [query, setQuery] = useState<{ target: number; startNode: number }>({
+        target: 4,
+        startNode: 0,
+    });
 
     // Chart
     // Quantized angle increments for polar coordinates
@@ -287,6 +292,71 @@ export default function Canvas() {
         };
     };
 
+    // Create overlay based on query parameters
+    useEffect(() => {
+        // TODO: Fix bug where it will cross circle when close
+        let route = [query.startNode];
+        let curr = query.startNode;
+        let count = 0;
+        while (curr !== query.target && count++ < 10) {
+            let currFingerTable = nodesData.find(
+                (x) => x.id == curr
+            )?.fingerTable;
+
+            if (!currFingerTable) return;
+
+            for (let i = 0; i < currFingerTable.length; i++) {
+                if (
+                    currFingerTable[i].start <= query.target &&
+                    query.target <= currFingerTable[i].successor
+                ) {
+                    curr = currFingerTable[i].successor;
+                    route.push(curr);
+                    break;
+                } else if (
+                    i < currFingerTable.length - 1 &&
+                    currFingerTable[i].successor <= query.target &&
+                    query.target < currFingerTable[i + 1].start
+                ) {
+                    curr = currFingerTable[i].successor;
+                    route.push(curr);
+                    break;
+                } else if (i == currFingerTable.length - 1) {
+                    curr = currFingerTable[i].successor;
+                    route.push(curr);
+                    break;
+                }
+            }
+        }
+
+        const svg = select(svgRef.current);
+
+        const queryOverlay = svg.append('g').attr('class', 'queryOverlay');
+
+        queryOverlay
+            .selectAll('.queryOverlay')
+            .data(route)
+            .join('path')
+            .attr(
+                'd',
+                (d, i) =>
+                    `M${
+                        i > 0
+                            ? getCoordinates(route[i - 1]).x
+                            : getCoordinates(d).x
+                    }  ${
+                        i > 0
+                            ? getCoordinates(route[i - 1]).y
+                            : getCoordinates(d).y
+                    } L ${getCoordinates(d).x} ${getCoordinates(d).y}`
+            )
+            .attr('stroke', 'var(--green)');
+
+        return () => {
+            svg.selectAll('.queryOverlay').remove();
+        };
+    }, [query, nodesData]);
+
     return (
         <div style={{ display: 'flex', flexDirection: 'column' }}>
             <svg
@@ -297,6 +367,7 @@ export default function Canvas() {
             />
 
             <button onClick={addNode}>Add node</button>
+            <br />
             <input
                 type="number"
                 value={M}
@@ -304,6 +375,7 @@ export default function Canvas() {
                     setM(parseInt(e.target.value));
                 }}
             />
+            <br />
             <button
                 onClick={() => {
                     setCurveType((curveType + 1) % 5);
@@ -311,6 +383,31 @@ export default function Canvas() {
             >
                 Change curve type {curveType}
             </button>
+            <br />
+
+            <p>Target</p>
+            <input
+                type="number"
+                value={query.target}
+                onChange={(e) => {
+                    setQuery({
+                        target: parseInt(e.target.value),
+                        startNode: query.startNode,
+                    });
+                }}
+            />
+            <br />
+            <p>Start node</p>
+            <input
+                type="number"
+                value={query.startNode}
+                onChange={(e) => {
+                    setQuery({
+                        target: query.target,
+                        startNode: parseInt(e.target.value),
+                    });
+                }}
+            />
         </div>
     );
 }
