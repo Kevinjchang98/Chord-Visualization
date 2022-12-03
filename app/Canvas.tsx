@@ -350,7 +350,9 @@ export default function Canvas() {
                             : getCoordinates(d).y
                     } L ${getCoordinates(d).x} ${getCoordinates(d).y}`
             )
-            .attr('stroke', 'var(--green)');
+            .attr('stroke', 'var(--green)')
+            .attr('fill', 'transparent')
+            .attr('stroke-width', '2px');
 
         return () => {
             svg.selectAll('.queryOverlay').remove();
