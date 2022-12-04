@@ -15,12 +15,20 @@ interface ChordNode {
 }
 
 export default function Canvas() {
+    const svgRef: any = useRef();
     // Chord
     // Ticks around Chord chart circle
     const [ticks, setTicks] = useState<Array<String>>([]);
     // Data about nodes in network
     const [nodesData, setNodesData] = useState<Array<ChordNode>>([]);
     // M used to calculate possible id space 2 ^ M
+    const [size, setSize] = useState<number>(1000);
+
+    const getSvgContainerSize = () => {
+        setSize(
+            Math.min(svgRef.current.clientWidth, svgRef.current.clientHeight)
+        );
+    };
 
     // Chart setup controls
     const { M } = useControls('Chart setup', {
@@ -67,15 +75,25 @@ export default function Canvas() {
     // Quantized angle increments for polar coordinates
     const theta = (2 * Math.PI) / Math.pow(2, M);
     // Radius from center the Chord graph's circle is
-    const r = 400;
     // Type of curve for finger table lines
 
-    const svgRef: any = useRef();
+    // Pay attention to svg size changes
+    useEffect(() => {
+        getSvgContainerSize();
+
+        window.addEventListener('resize', getSvgContainerSize);
+
+        return () => window.removeEventListener('resize', getSvgContainerSize);
+    });
+
+    useEffect(() => {
+        console.log(size);
+    }, [size]);
 
     // Delete nodesData when M is changed
     useEffect(() => {
         setNodesData([]);
-    }, [M]);
+    }, [M, size]);
 
     // Regenerate ticks array when M is changed
     useEffect(() => {
@@ -205,7 +223,7 @@ export default function Canvas() {
             .append('circle')
             .attr('cx', '50%')
             .attr('cy', '50%')
-            .attr('r', r)
+            .attr('r', size / 2 - 100)
             .style('stroke', 'var(--light3)')
             .style('fill', 'transparent');
 
@@ -218,19 +236,27 @@ export default function Canvas() {
             .append('line')
             .attr(
                 'x1',
-                (d, i) => (r - 10) * Math.cos(i * theta - Math.PI / 2) + 500
+                (d, i) =>
+                    (size / 2 - 100 - 10) * Math.cos(i * theta - Math.PI / 2) +
+                    size / 2
             )
             .attr(
                 'x2',
-                (d, i) => (r + 10) * Math.cos(i * theta - Math.PI / 2) + 500
+                (d, i) =>
+                    (size / 2 - 100 + 10) * Math.cos(i * theta - Math.PI / 2) +
+                    size / 2
             )
             .attr(
                 'y1',
-                (d, i) => (r - 10) * Math.sin(i * theta - Math.PI / 2) + 500
+                (d, i) =>
+                    (size / 2 - 100 - 10) * Math.sin(i * theta - Math.PI / 2) +
+                    size / 2
             )
             .attr(
                 'y2',
-                (d, i) => (r + 10) * Math.sin(i * theta - Math.PI / 2) + 500
+                (d, i) =>
+                    (size / 2 - 100 + 10) * Math.sin(i * theta - Math.PI / 2) +
+                    size / 2
             )
             .style('stroke', (d) =>
                 d === '' ? 'var(--light3)' : 'var(--red)'
@@ -240,7 +266,7 @@ export default function Canvas() {
         return () => {
             svg.selectAll('g').remove();
         };
-    }, [ticks, M]);
+    }, [ticks, M, size]);
 
     useEffect(() => {
         const svg = select(svgRef.current);
@@ -294,7 +320,7 @@ export default function Canvas() {
                     switch (curveType) {
                         case 0:
                             curvePath = `M ${d.coords.x} ${d.coords.y}
-                            Q 500 500
+                            Q (size / 2) (size / 2)
                               ${getCoordinates(d.fingerTable[i].successor).x}
                               ${getCoordinates(d.fingerTable[i].successor).y}`;
 
@@ -362,12 +388,16 @@ export default function Canvas() {
         return () => {
             svg.selectAll('.nodes').remove();
         };
-    }, [nodesData, curveType, hoverOnly]);
+    }, [nodesData, curveType, hoverOnly, size]);
 
     const getCoordinates = (nodeId: number) => {
         return {
-            x: r * Math.cos(nodeId * theta - Math.PI / 2) + 500,
-            y: r * Math.sin(nodeId * theta - Math.PI / 2) + 500,
+            x:
+                (size / 2 - 100) * Math.cos(nodeId * theta - Math.PI / 2) +
+                size / 2,
+            y:
+                (size / 2 - 100) * Math.sin(nodeId * theta - Math.PI / 2) +
+                size / 2,
         };
     };
 
@@ -447,7 +477,7 @@ export default function Canvas() {
         return () => {
             svg.selectAll('.queryOverlay').remove();
         };
-    }, [target, startNode, nodesData, showQueryOverlay]);
+    }, [target, startNode, nodesData, showQueryOverlay, size]);
 
     useEffect(() => {
         const svg = select(svgRef.current);
@@ -469,16 +499,17 @@ export default function Canvas() {
         return () => {
             svg.selectAll('.targetOverlay').remove();
         };
-    }, [target, startNode, nodesData, showQueryOverlay]);
+    }, [target, startNode, nodesData, showQueryOverlay, size]);
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <svg
-                width="1000"
-                height="1000"
-                ref={svgRef}
-                style={{ overflow: 'visible' }}
-            />
+            <div className="chart-container">
+                <svg
+                    ref={svgRef}
+                    style={{ overflow: 'visible' }}
+                    className="chord-svg"
+                />
+            </div>
 
             <div className="node-controls-container">
                 <button onClick={addNode}>Add node</button>
