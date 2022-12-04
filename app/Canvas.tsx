@@ -396,7 +396,7 @@ export default function Canvas() {
                     .attr('fill', 'var(--light3)')
                     .attr('id', 'text' + d.id)
                     .attr('x', d.coords.x)
-                    .attr('y', d.coords.y)
+                    .attr('y', d.coords.y + 2)
                     .attr('text-anchor', 'middle')
                     .attr('dominant-baseline', 'middle')
                     .attr('font-size', '1.5rem')
