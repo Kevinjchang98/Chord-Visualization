@@ -57,8 +57,10 @@ a {
 
 .leva-start {
     position: absolute;
-    bottom: 20px;
+    bottom: 344px;
     right: 20px;
+    height: 0px;
+    width: 300px;
 }
 
 button {
