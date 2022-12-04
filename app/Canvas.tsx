@@ -23,7 +23,7 @@ export default function Canvas() {
     // Data about nodes in network
     const [nodesData, setNodesData] = useState<Array<ChordNode>>([]);
     // M used to calculate possible id space 2 ^ M
-    const [size, setSize] = useState<number>(1000);
+    const [size, setSize] = useState<number>(0);
 
     // Chart setup controls
     const { M } = useControls('Chart setup', {
@@ -548,6 +548,7 @@ export default function Canvas() {
             <div className="leva-start">
                 <Leva fill />
             </div>
+
             <div className="chart-container">
                 <svg
                     ref={svgRef}
@@ -560,7 +561,6 @@ export default function Canvas() {
                 <button onClick={addNode}>Add node</button>
                 <button onClick={removeNode}>Remove node</button>
             </div>
-            <br />
         </div>
     );
 }
