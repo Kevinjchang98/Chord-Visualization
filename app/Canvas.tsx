@@ -25,7 +25,16 @@ export default function Canvas() {
     // Chart setup controls
     const { M, curveType } = useControls({
         M: { value: 3, min: 2, max: 9, step: 1 },
-        curveType: { label: 'Curve type', value: 0, min: 0, max: 4, step: 1 },
+        curveType: {
+            label: 'Curve type',
+            options: {
+                'Curve (to Middle)': 0,
+                'Curve (to ID)': 1,
+                'Line (ID + Node)': 2,
+                'Line (Node only)': 3,
+                'Line (ID)': 4,
+            },
+        },
     });
 
     // Query controls
