@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { select } from 'd3';
-import { button, useControls } from 'leva';
+import { useControls } from 'leva';
 
 interface ChordNode {
     id: number;
