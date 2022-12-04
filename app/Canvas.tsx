@@ -23,8 +23,12 @@ export default function Canvas() {
     // M used to calculate possible id space 2 ^ M
 
     // Chart setup controls
-    const { M, curveType } = useControls('Chart setup', {
+    const { M } = useControls('Chart setup', {
         M: { value: 3, min: 2, max: 9, step: 1 },
+    });
+
+    const { hoverOnly, curveType } = useControls('Finger table', {
+        hoverOnly: { label: 'Hover only', value: true },
         curveType: {
             label: 'Curve type',
             options: {
@@ -253,6 +257,11 @@ export default function Canvas() {
             .attr('r', 20)
             .style('fill', 'var(--blue4)')
             .on('mouseover', (e, d) => {
+                // Remove old overlay when new node is hovered if persistent
+                if (!hoverOnly) {
+                    nodes.selectAll('path').remove();
+                    nodes.selectAll('text').remove();
+                }
                 // Change color of node circle
                 select('#id' + d.id).style('fill', 'var(--red)');
 
@@ -342,15 +351,18 @@ export default function Canvas() {
             })
             .on('mouseout', (e, d) => {
                 select('#id' + d.id).style('fill', 'var(--blue4)');
-                nodes.selectAll('text').remove();
-                nodes.selectAll('path').remove();
+                // Remove overlay on mouseout if hover only
+                if (hoverOnly) {
+                    nodes.selectAll('text').remove();
+                    nodes.selectAll('path').remove();
+                }
             });
 
         // Remove elements when nodesData changes
         return () => {
             svg.selectAll('.nodes').remove();
         };
-    }, [nodesData, curveType]);
+    }, [nodesData, curveType, hoverOnly]);
 
     const getCoordinates = (nodeId: number) => {
         return {
