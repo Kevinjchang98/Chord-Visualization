@@ -23,7 +23,7 @@ export default function Canvas() {
     // M used to calculate possible id space 2 ^ M
 
     // Chart setup controls
-    const { M, curveType } = useControls({
+    const { M, curveType } = useControls('Chart setup', {
         M: { value: 3, min: 2, max: 9, step: 1 },
         curveType: {
             label: 'Curve type',
@@ -39,6 +39,7 @@ export default function Canvas() {
 
     // Query controls
     const { target, startNode } = useControls(
+        'Query',
         {
             target: {
                 label: 'Target node',
@@ -462,7 +463,9 @@ export default function Canvas() {
                 style={{ overflow: 'visible' }}
             />
 
-            <button onClick={addNode}>Add node</button>
+            <div className="node-controls-container">
+                <button onClick={addNode}>Add node</button>
+            </div>
             <br />
         </div>
     );
