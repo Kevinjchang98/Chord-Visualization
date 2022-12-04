@@ -37,6 +37,32 @@ a {
     box-sizing: border-box;
 }
 
+.title {
+    max-height: 10vh;
+}
+
+.chart-container {
+    height: calc(80vh - 40px);
+    width: 100vw;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.chord-svg {
+    height: min(100vw, 75vh);
+    width: min(100vw, 75vh);
+}
+
+.leva-start {
+    position: absolute;
+    bottom: 344px;
+    right: 20px;
+    height: 0px;
+    width: 300px;
+}
+
 button {
     color-scheme: dark;
     box-sizing: border-box;
@@ -63,6 +89,9 @@ button:hover {
 .node-controls-container {
     display: flex;
     flex-direction: row;
+    margin-top: 20px;
+    margin-bottom: 20px;
+    height: 5vh;
     width: 100%;
     justify-content: center;
     align-items: center;

@@ -1,34 +1,23 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Chord Algorithm Visualization
 
-## Getting Started
+This is a visualization of the Chord algorithm/protocol used to create a peer to peer distributed hash table. It's created using [Next.js](https://nextjs.org/) and [d3.js](https://d3js.org/). This was for an extra credit assignment for Seattle University's Distributed Systems class.
 
-First, run the development server:
+## Features
 
-```bash
-npm run dev
-# or
-yarn dev
-```
+### Chart Setup
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The amount of possible IDs can be changed by modifying the value of $M$ in the chart setup area of the options panel. This refers to the Chord network having a range of $[0, 2^M)$
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Adding and Removing Nodes
 
-[API routes](https://nextjs.org/docs/api-routes/introduction) can be accessed on [http://localhost:3000/api/hello](http://localhost:3000/api/hello). This endpoint can be edited in `pages/api/hello.ts`.
+Nodes are added or removed by clicking the buttons underneath the graph. Currently nodes are added at random places around the circle. A random existing node will be removed when the remove button is pressed. Finger tables are updated as the network changes due to nodes joining or leaving
 
-The `pages/api` directory is mapped to `/api/*`. Files in this directory are treated as [API routes](https://nextjs.org/docs/api-routes/introduction) instead of React pages.
+### Finger Tables
 
-## Learn More
+Hover a node to view it's finger table and a visualization of its connections. A user can make the overlay persistent until another node is hovered by unchecking the "hover only" checkbox under the finger table options. The curve type can be changed as well.
 
-To learn more about Next.js, take a look at the following resources:
+### Query
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+The query overlay is hidden by default and can be shown by checking the show option in the query section of the options panel.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+The target ID we're querying for can be chosen through the number input, and the node we're starting on can be chosen similarly. Currently the user can choose a starting node value that corresponds to an ID without a node, and nothing will show if that's the case; please choose a value for "starting node" that corresponds to some existing node in the network

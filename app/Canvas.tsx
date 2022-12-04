@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { select } from 'd3';
-import { useControls } from 'leva';
+import { Leva, useControls } from 'leva';
 
 interface ChordNode {
     id: number;
@@ -15,16 +15,24 @@ interface ChordNode {
 }
 
 export default function Canvas() {
-    // Chord
+    // Ref to svg element used for graph
+    const svgRef: any = useRef();
+
     // Ticks around Chord chart circle
     const [ticks, setTicks] = useState<Array<String>>([]);
     // Data about nodes in network
     const [nodesData, setNodesData] = useState<Array<ChordNode>>([]);
     // M used to calculate possible id space 2 ^ M
+    const [size, setSize] = useState<number>(1000);
 
     // Chart setup controls
-    const { M, curveType } = useControls('Chart setup', {
-        M: { value: 3, min: 2, max: 9, step: 1 },
+    const { M } = useControls('Chart setup', {
+        M: { value: 4, min: 2, max: 9, step: 1 },
+    });
+
+    // Finger table controls
+    const { hoverOnly, curveType } = useControls('Finger table', {
+        hoverOnly: { label: 'Hover only', value: true },
         curveType: {
             label: 'Curve type',
             options: {
@@ -38,11 +46,12 @@ export default function Canvas() {
     });
 
     // Query controls
-    const { target, startNode } = useControls(
+    const { showQueryOverlay, target, startNode } = useControls(
         'Query',
         {
+            showQueryOverlay: { label: 'Show', value: false },
             target: {
-                label: 'Target node',
+                label: 'Target ID',
                 value: Math.pow(2, M) / 2,
                 min: 0,
                 max: Math.pow(2, M),
@@ -61,26 +70,24 @@ export default function Canvas() {
 
     // Quantized angle increments for polar coordinates
     const theta = (2 * Math.PI) / Math.pow(2, M);
-    // Radius from center the Chord graph's circle is
-    const r = 400;
-    // Type of curve for finger table lines
 
-    const svgRef: any = useRef();
+    // Gets size of svg element
+    const getSvgContainerSize = () => {
+        setSize(
+            Math.min(svgRef.current.clientWidth, svgRef.current.clientHeight)
+        );
+    };
 
-    // Delete nodesData when M is changed
+    // Pay attention to svg size changes
     useEffect(() => {
-        setNodesData([]);
-    }, [M]);
+        getSvgContainerSize();
 
-    // Regenerate ticks array when M is changed
-    useEffect(() => {
-        let ticks = [];
-        for (let i = 0; i < Math.pow(2, M); i++) {
-            ticks.push('');
-        }
-        setTicks(ticks);
-    }, [M]);
+        window.addEventListener('resize', getSvgContainerSize);
 
+        return () => window.removeEventListener('resize', getSvgContainerSize);
+    });
+
+    // Adds a new node with random ID
     const addNode = () => {
         // Create array of nodeIds existing in network
         let nodeIds = nodesData.map((node) => node.id);
@@ -104,6 +111,54 @@ export default function Canvas() {
             },
         ]);
     };
+
+    // Removes a random existing node
+    const removeNode = () => {
+        setNodesData((prev) => {
+            let newData = [...prev];
+            newData.splice(Math.floor(Math.random() * newData.length), 1);
+            return newData;
+        });
+    };
+
+    // Gets x and y coords for any particular ID
+    const getCoordinates = (nodeId: number) => {
+        return {
+            x:
+                (size / 2 - 100) * Math.cos(nodeId * theta - Math.PI / 2) +
+                size / 2,
+            y:
+                (size / 2 - 100) * Math.sin(nodeId * theta - Math.PI / 2) +
+                size / 2,
+        };
+    };
+
+    // Determines if x is within [left, right), wrapping around with mod math at
+    // 2^M
+    const isWithinRange = (left: number, x: number, right: number) => {
+        if (right > left) {
+            return left <= x && x < right;
+        } else if (left > right) {
+            return (
+                (left <= x && x < right + Math.pow(2, M)) ||
+                (left - Math.pow(2, M) <= x && x < right)
+            );
+        }
+    };
+
+    // Delete nodesData when M is changed
+    useEffect(() => {
+        setNodesData([]);
+    }, [M, size]);
+
+    // Regenerate ticks array when M is changed
+    useEffect(() => {
+        let ticks = [];
+        for (let i = 0; i < Math.pow(2, M); i++) {
+            ticks.push('');
+        }
+        setTicks(ticks);
+    }, [M]);
 
     // Refresh finger tables when nodes change
     useEffect(() => {
@@ -157,6 +212,8 @@ export default function Canvas() {
         return fingerTable;
     };
 
+    // Generates keys a particular node is responsible for depending on existing
+    // predecessor
     const generateKeys = (nodeId: number) => {
         let keys = [];
 
@@ -174,7 +231,7 @@ export default function Canvas() {
         if (nodeId === nodeIds[0]) {
             keys.push(-1);
             predecessor = nodeIds[nodeIds.length - 1];
-            let curr = (predecessor + 1) % Math.pow(2, M);
+            let curr = predecessor % Math.pow(2, M);
 
             while (curr++ % Math.pow(2, M) != 0) keys.push(curr);
             curr = 0;
@@ -196,16 +253,18 @@ export default function Canvas() {
 
         const axisCircle = svg.append('g').attr('class', 'axisCircle');
 
+        // Circle for graph
         axisCircle
             .append('circle')
             .attr('cx', '50%')
             .attr('cy', '50%')
-            .attr('r', r)
+            .attr('r', size / 2 - 100)
             .style('stroke', 'var(--light3)')
             .style('fill', 'transparent');
 
         const axisTicks = svg.append('g').attr('class', 'axisTicks');
 
+        // Ticks at each ID position around the graph
         axisTicks
             .selectAll('.axisTicks')
             .data(ticks)
@@ -213,30 +272,37 @@ export default function Canvas() {
             .append('line')
             .attr(
                 'x1',
-                (d, i) => (r - 10) * Math.cos(i * theta - Math.PI / 2) + 500
+                (d, i) =>
+                    (size / 2 - 100 - 10) * Math.cos(i * theta - Math.PI / 2) +
+                    size / 2
             )
             .attr(
                 'x2',
-                (d, i) => (r + 10) * Math.cos(i * theta - Math.PI / 2) + 500
+                (d, i) =>
+                    (size / 2 - 100 + 10) * Math.cos(i * theta - Math.PI / 2) +
+                    size / 2
             )
             .attr(
                 'y1',
-                (d, i) => (r - 10) * Math.sin(i * theta - Math.PI / 2) + 500
+                (d, i) =>
+                    (size / 2 - 100 - 10) * Math.sin(i * theta - Math.PI / 2) +
+                    size / 2
             )
             .attr(
                 'y2',
-                (d, i) => (r + 10) * Math.sin(i * theta - Math.PI / 2) + 500
+                (d, i) =>
+                    (size / 2 - 100 + 10) * Math.sin(i * theta - Math.PI / 2) +
+                    size / 2
             )
-            .style('stroke', (d) =>
-                d === '' ? 'var(--light3)' : 'var(--red)'
-            );
+            .style('stroke', 'var(--light3)');
 
         // Remove all elements when needing to regenerate
         return () => {
             svg.selectAll('g').remove();
         };
-    }, [ticks, M]);
+    }, [ticks, M, size]);
 
+    // Draw nodes
     useEffect(() => {
         const svg = select(svgRef.current);
 
@@ -252,39 +318,24 @@ export default function Canvas() {
             .attr('r', 20)
             .style('fill', 'var(--blue4)')
             .on('mouseover', (e, d) => {
+                // Remove old overlay when new node is hovered if persistent
+                if (!hoverOnly) {
+                    nodes.selectAll('path').remove();
+                    nodes.selectAll('text').remove();
+                }
+
                 // Change color of node circle
                 select('#id' + d.id).style('fill', 'var(--red)');
 
-                // Header row of finger table
-                nodes
-                    .append('text')
-                    .text('Start - Successor')
-                    .attr('fill', 'var(--light3)')
-                    .attr('id', 'text' + d.id)
-                    .attr('x', d.coords.x + 50)
-                    .attr('y', d.coords.y - 70)
-                    .attr('pointer-events', 'none');
-
-                // Each row of finger table
+                // Draw all connection lines
                 for (let i = 0; i < d.fingerTable.length; i++) {
-                    // Row text
-                    nodes
-                        .append('text')
-                        .text(
-                            `${d.fingerTable[i].start}  -  ${d.fingerTable[i].successor}`
-                        )
-                        .attr('fill', 'var(--light3)')
-                        .attr('id', 'text' + d.id)
-                        .attr('x', d.coords.x + 50)
-                        .attr('y', d.coords.y - 40 + 30 * i)
-                        .attr('pointer-events', 'none');
-
                     let curvePath;
 
+                    // Change line style depending on user preference
                     switch (curveType) {
                         case 0:
                             curvePath = `M ${d.coords.x} ${d.coords.y}
-                            Q 500 500
+                            Q ${size / 2} ${size / 2}
                               ${getCoordinates(d.fingerTable[i].successor).x}
                               ${getCoordinates(d.fingerTable[i].successor).y}`;
 
@@ -338,54 +389,88 @@ export default function Canvas() {
                         .attr('d', curvePath)
                         .attr('pointer-events', 'none');
                 }
+
+                // Header row of finger table
+                nodes
+                    .append('text')
+                    .text('Start - Successor')
+                    .attr('fill', 'var(--light3)')
+                    .attr('id', 'text' + d.id)
+                    .attr('x', d.coords.x + 50)
+                    .attr('y', d.coords.y - 70)
+                    .attr('pointer-events', 'none');
+
+                // Draw each row in finger table
+                for (let i = 0; i < d.fingerTable.length; i++) {
+                    // Row text
+                    nodes
+                        .append('text')
+                        .text(
+                            `${d.fingerTable[i].start}  -  ${d.fingerTable[i].successor}`
+                        )
+                        .attr('fill', 'var(--light3)')
+                        .attr('id', 'text' + d.id)
+                        .attr('x', d.coords.x + 50)
+                        .attr('y', d.coords.y - 40 + 30 * i)
+                        .attr('z-index', '5')
+                        .attr('pointer-events', 'none');
+                }
+
+                // Self ID
+                nodes
+                    .append('text')
+                    .text(d.id)
+                    .attr('fill', 'var(--light3)')
+                    .attr('id', 'text' + d.id)
+                    .attr('x', d.coords.x)
+                    .attr('y', d.coords.y + 2)
+                    .attr('text-anchor', 'middle')
+                    .attr('dominant-baseline', 'middle')
+                    .attr('font-size', '1.5rem')
+                    .attr('pointer-events', 'none');
             })
             .on('mouseout', (e, d) => {
                 select('#id' + d.id).style('fill', 'var(--blue4)');
-                nodes.selectAll('text').remove();
-                nodes.selectAll('path').remove();
+                // Remove overlay on mouseout if hover only
+                if (hoverOnly) {
+                    nodes.selectAll('text').remove();
+                    nodes.selectAll('path').remove();
+                }
             });
 
         // Remove elements when nodesData changes
         return () => {
             svg.selectAll('.nodes').remove();
         };
-    }, [nodesData, curveType]);
+    }, [nodesData, curveType, hoverOnly, size]);
 
-    const getCoordinates = (nodeId: number) => {
-        return {
-            x: r * Math.cos(nodeId * theta - Math.PI / 2) + 500,
-            y: r * Math.sin(nodeId * theta - Math.PI / 2) + 500,
-        };
-    };
-
-    const isWithinRange = (left: number, x: number, right: number) => {
-        if (right > left) {
-            return left <= x && x < right;
-        } else if (left > right) {
-            return (
-                (left <= x && x < right + Math.pow(2, M)) ||
-                (left - Math.pow(2, M) <= x && x < right)
-            );
-        }
-    };
-
-    // Create overlay based on query parameters
+    // Create query route overlay based on query parameters
     useEffect(() => {
+        const svg = select(svgRef.current);
+
+        // Do nothing if user doesn't want to show query overlay
+        if (!showQueryOverlay) return;
+
         let route = [startNode];
         let curr = startNode;
         let count = 0;
 
-        // While curr's keys doesn't include target
+        // For each step in the route we add to route arr until we reach target node
         while (
+            // While curr's keys doesn't include target
             !nodesData.find((x) => x.id === curr)?.keys.includes(target) &&
-            count++ < 10
+            // Max of 2^M jumps to prevent unexpected inf loop crashing
+            count++ < Math.pow(2, M)
         ) {
             let currFingerTable = nodesData.find(
                 (x) => x.id === curr
             )?.fingerTable;
 
+            // Do nothing if we can't find finger table for some unexpected
+            // reason
             if (!currFingerTable) return;
 
+            // Check finger table and add appropriate node to route
             for (let i = 0; i < currFingerTable.length; i++) {
                 if (
                     isWithinRange(
@@ -403,10 +488,9 @@ export default function Canvas() {
             }
         }
 
-        const svg = select(svgRef.current);
-
         const queryOverlay = svg.append('g').attr('class', 'queryOverlay');
 
+        // Draw lines for each of the steps in route
         queryOverlay
             .selectAll('.queryOverlay')
             .data(route)
@@ -432,13 +516,18 @@ export default function Canvas() {
         return () => {
             svg.selectAll('.queryOverlay').remove();
         };
-    }, [target, startNode, nodesData]);
+    }, [target, startNode, nodesData, showQueryOverlay, size]);
 
+    // Query target and start node indicators
     useEffect(() => {
         const svg = select(svgRef.current);
 
+        // Do nothing if user doesn't want to show query overlay
+        if (!showQueryOverlay) return;
+
         const queryOverlay = svg.append('g').attr('class', 'targetOverlay');
 
+        // Draw circles for target and startNode
         queryOverlay
             .selectAll('.targetOverlay')
             .data([target, startNode])
@@ -452,19 +541,24 @@ export default function Canvas() {
         return () => {
             svg.selectAll('.targetOverlay').remove();
         };
-    }, [target, startNode, nodesData]);
+    }, [target, startNode, nodesData, showQueryOverlay, size]);
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <svg
-                width="1000"
-                height="1000"
-                ref={svgRef}
-                style={{ overflow: 'visible' }}
-            />
+            <div className="leva-start">
+                <Leva fill />
+            </div>
+            <div className="chart-container">
+                <svg
+                    ref={svgRef}
+                    style={{ overflow: 'visible' }}
+                    className="chord-svg"
+                />
+            </div>
 
             <div className="node-controls-container">
                 <button onClick={addNode}>Add node</button>
+                <button onClick={removeNode}>Remove node</button>
             </div>
             <br />
         </div>
