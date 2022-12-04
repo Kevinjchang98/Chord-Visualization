@@ -201,7 +201,6 @@ export default function Canvas() {
 
         // Get predecessor
         if (nodeId === nodeIds[0]) {
-            keys.push(-1);
             predecessor = nodeIds[nodeIds.length - 1];
             let curr = predecessor % Math.pow(2, M);
 
