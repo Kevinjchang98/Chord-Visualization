@@ -23,7 +23,7 @@ export default function Canvas() {
     // Data about nodes in network
     const [nodesData, setNodesData] = useState<Array<ChordNode>>([]);
     // M used to calculate possible id space 2 ^ M
-    const [size, setSize] = useState<number>(1000);
+    const [size, setSize] = useState<number>(0);
 
     // Chart setup controls
     const { M } = useControls('Chart setup', {
@@ -146,34 +146,6 @@ export default function Canvas() {
         }
     };
 
-    // Delete nodesData when M is changed
-    useEffect(() => {
-        setNodesData([]);
-    }, [M, size]);
-
-    // Regenerate ticks array when M is changed
-    useEffect(() => {
-        let ticks = [];
-        for (let i = 0; i < Math.pow(2, M); i++) {
-            ticks.push('');
-        }
-        setTicks(ticks);
-    }, [M]);
-
-    // Refresh finger tables when nodes change
-    useEffect(() => {
-        setNodesData((prev) => {
-            let newData = prev;
-
-            for (let i = 0; i < newData.length; i++) {
-                newData[i].fingerTable = generateFingerTable(newData[i].id);
-                newData[i].keys = generateKeys(newData[i].id);
-            }
-
-            return newData;
-        });
-    }, [nodesData]);
-
     // Generates the finger table for a given nodeId
     const generateFingerTable = (nodeId: number) => {
         let fingerTable = [];
@@ -246,6 +218,34 @@ export default function Canvas() {
 
         return keys;
     };
+
+    // Delete nodesData when M is changed
+    useEffect(() => {
+        setNodesData([]);
+    }, [M, size]);
+
+    // Regenerate ticks array when M is changed
+    useEffect(() => {
+        let ticks = [];
+        for (let i = 0; i < Math.pow(2, M); i++) {
+            ticks.push('');
+        }
+        setTicks(ticks);
+    }, [M]);
+
+    // Refresh finger tables when nodes change
+    useEffect(() => {
+        setNodesData((prev) => {
+            let newData = prev;
+
+            for (let i = 0; i < newData.length; i++) {
+                newData[i].fingerTable = generateFingerTable(newData[i].id);
+                newData[i].keys = generateKeys(newData[i].id);
+            }
+
+            return newData;
+        });
+    }, [nodesData]);
 
     // Draws graph axes and ticks
     useEffect(() => {
@@ -548,6 +548,7 @@ export default function Canvas() {
             <div className="leva-start">
                 <Leva fill />
             </div>
+
             <div className="chart-container">
                 <svg
                     ref={svgRef}
@@ -560,7 +561,6 @@ export default function Canvas() {
                 <button onClick={addNode}>Add node</button>
                 <button onClick={removeNode}>Remove node</button>
             </div>
-            <br />
         </div>
     );
 }
