@@ -74,8 +74,6 @@ export default function Canvas() {
 
     // Quantized angle increments for polar coordinates
     const theta = (2 * Math.PI) / Math.pow(2, M);
-    // Radius from center the Chord graph's circle is
-    // Type of curve for finger table lines
 
     // Pay attention to svg size changes
     useEffect(() => {
@@ -86,24 +84,7 @@ export default function Canvas() {
         return () => window.removeEventListener('resize', getSvgContainerSize);
     });
 
-    useEffect(() => {
-        console.log(size);
-    }, [size]);
-
-    // Delete nodesData when M is changed
-    useEffect(() => {
-        setNodesData([]);
-    }, [M, size]);
-
-    // Regenerate ticks array when M is changed
-    useEffect(() => {
-        let ticks = [];
-        for (let i = 0; i < Math.pow(2, M); i++) {
-            ticks.push('');
-        }
-        setTicks(ticks);
-    }, [M]);
-
+    // Adds a new node with random ID
     const addNode = () => {
         // Create array of nodeIds existing in network
         let nodeIds = nodesData.map((node) => node.id);
@@ -128,6 +109,7 @@ export default function Canvas() {
         ]);
     };
 
+    // Removes a random existing node
     const removeNode = () => {
         setNodesData((prev) => {
             let newData = [...prev];
@@ -135,6 +117,45 @@ export default function Canvas() {
             return newData;
         });
     };
+
+    // Gets x and y coords for any particular ID
+    const getCoordinates = (nodeId: number) => {
+        return {
+            x:
+                (size / 2 - 100) * Math.cos(nodeId * theta - Math.PI / 2) +
+                size / 2,
+            y:
+                (size / 2 - 100) * Math.sin(nodeId * theta - Math.PI / 2) +
+                size / 2,
+        };
+    };
+
+    // Determines if x is within [left, right), wrapping around with mod math at
+    // 2^M
+    const isWithinRange = (left: number, x: number, right: number) => {
+        if (right > left) {
+            return left <= x && x < right;
+        } else if (left > right) {
+            return (
+                (left <= x && x < right + Math.pow(2, M)) ||
+                (left - Math.pow(2, M) <= x && x < right)
+            );
+        }
+    };
+
+    // Delete nodesData when M is changed
+    useEffect(() => {
+        setNodesData([]);
+    }, [M, size]);
+
+    // Regenerate ticks array when M is changed
+    useEffect(() => {
+        let ticks = [];
+        for (let i = 0; i < Math.pow(2, M); i++) {
+            ticks.push('');
+        }
+        setTicks(ticks);
+    }, [M]);
 
     // Refresh finger tables when nodes change
     useEffect(() => {
@@ -188,6 +209,8 @@ export default function Canvas() {
         return fingerTable;
     };
 
+    // Generates keys a particular node is responsible for depending on existing
+    // predecessor
     const generateKeys = (nodeId: number) => {
         let keys = [];
 
@@ -227,6 +250,7 @@ export default function Canvas() {
 
         const axisCircle = svg.append('g').attr('class', 'axisCircle');
 
+        // Circle for graph
         axisCircle
             .append('circle')
             .attr('cx', '50%')
@@ -237,6 +261,7 @@ export default function Canvas() {
 
         const axisTicks = svg.append('g').attr('class', 'axisTicks');
 
+        // Ticks at each ID position around the graph
         axisTicks
             .selectAll('.axisTicks')
             .data(ticks)
@@ -266,9 +291,7 @@ export default function Canvas() {
                     (size / 2 - 100 + 10) * Math.sin(i * theta - Math.PI / 2) +
                     size / 2
             )
-            .style('stroke', (d) =>
-                d === '' ? 'var(--light3)' : 'var(--red)'
-            );
+            .style('stroke', 'var(--light3)');
 
         // Remove all elements when needing to regenerate
         return () => {
@@ -305,6 +328,7 @@ export default function Canvas() {
                 for (let i = 0; i < d.fingerTable.length; i++) {
                     let curvePath;
 
+                    // Change line style depending on user preference
                     switch (curveType) {
                         case 0:
                             curvePath = `M ${d.coords.x} ${d.coords.y}
@@ -417,111 +441,99 @@ export default function Canvas() {
         };
     }, [nodesData, curveType, hoverOnly, size]);
 
-    const getCoordinates = (nodeId: number) => {
-        return {
-            x:
-                (size / 2 - 100) * Math.cos(nodeId * theta - Math.PI / 2) +
-                size / 2,
-            y:
-                (size / 2 - 100) * Math.sin(nodeId * theta - Math.PI / 2) +
-                size / 2,
-        };
-    };
-
-    const isWithinRange = (left: number, x: number, right: number) => {
-        if (right > left) {
-            return left <= x && x < right;
-        } else if (left > right) {
-            return (
-                (left <= x && x < right + Math.pow(2, M)) ||
-                (left - Math.pow(2, M) <= x && x < right)
-            );
-        }
-    };
-
-    // Create overlay based on query parameters
+    // Create query route overlay based on query parameters
     useEffect(() => {
         const svg = select(svgRef.current);
 
-        if (showQueryOverlay) {
-            let route = [startNode];
-            let curr = startNode;
-            let count = 0;
+        // Do nothing if user doesn't want to show query overlay
+        if (!showQueryOverlay) return;
 
+        let route = [startNode];
+        let curr = startNode;
+        let count = 0;
+
+        // For each step in the route we add to route arr until we reach target node
+        while (
             // While curr's keys doesn't include target
-            while (
-                !nodesData.find((x) => x.id === curr)?.keys.includes(target) &&
-                count++ < 10
-            ) {
-                let currFingerTable = nodesData.find(
-                    (x) => x.id === curr
-                )?.fingerTable;
+            !nodesData.find((x) => x.id === curr)?.keys.includes(target) &&
+            // Max of 2^M jumps to prevent unexpected inf loop crashing
+            count++ < Math.pow(2, M)
+        ) {
+            let currFingerTable = nodesData.find(
+                (x) => x.id === curr
+            )?.fingerTable;
 
-                if (!currFingerTable) return;
+            // Do nothing if we can't find finger table for some unexpected
+            // reason
+            if (!currFingerTable) return;
 
-                for (let i = 0; i < currFingerTable.length; i++) {
-                    if (
-                        isWithinRange(
-                            currFingerTable[i].start,
-                            target,
-                            i != currFingerTable.length - 1
-                                ? currFingerTable[i + 1].start
-                                : curr
-                        )
-                    ) {
-                        curr = currFingerTable[i].successor;
-                        route.push(curr);
-                        break;
-                    }
+            // Check finger table and add appropriate node to route
+            for (let i = 0; i < currFingerTable.length; i++) {
+                if (
+                    isWithinRange(
+                        currFingerTable[i].start,
+                        target,
+                        i != currFingerTable.length - 1
+                            ? currFingerTable[i + 1].start
+                            : curr
+                    )
+                ) {
+                    curr = currFingerTable[i].successor;
+                    route.push(curr);
+                    break;
                 }
             }
-
-            const queryOverlay = svg.append('g').attr('class', 'queryOverlay');
-
-            queryOverlay
-                .selectAll('.queryOverlay')
-                .data(route)
-                .join('path')
-                .attr(
-                    'd',
-                    (d, i) =>
-                        `M${
-                            i > 0
-                                ? getCoordinates(route[i - 1]).x
-                                : getCoordinates(d).x
-                        }  ${
-                            i > 0
-                                ? getCoordinates(route[i - 1]).y
-                                : getCoordinates(d).y
-                        } L ${getCoordinates(d).x} ${getCoordinates(d).y}`
-                )
-                .attr('stroke', 'var(--green)')
-                .attr('fill', 'transparent')
-                .attr('pointer-events', 'none')
-                .attr('stroke-width', '2px');
         }
+
+        const queryOverlay = svg.append('g').attr('class', 'queryOverlay');
+
+        // Draw lines for each of the steps in route
+        queryOverlay
+            .selectAll('.queryOverlay')
+            .data(route)
+            .join('path')
+            .attr(
+                'd',
+                (d, i) =>
+                    `M${
+                        i > 0
+                            ? getCoordinates(route[i - 1]).x
+                            : getCoordinates(d).x
+                    }  ${
+                        i > 0
+                            ? getCoordinates(route[i - 1]).y
+                            : getCoordinates(d).y
+                    } L ${getCoordinates(d).x} ${getCoordinates(d).y}`
+            )
+            .attr('stroke', 'var(--green)')
+            .attr('fill', 'transparent')
+            .attr('pointer-events', 'none')
+            .attr('stroke-width', '2px');
 
         return () => {
             svg.selectAll('.queryOverlay').remove();
         };
     }, [target, startNode, nodesData, showQueryOverlay, size]);
 
+    // Query target and start node indicators
     useEffect(() => {
         const svg = select(svgRef.current);
 
-        if (showQueryOverlay) {
-            const queryOverlay = svg.append('g').attr('class', 'targetOverlay');
+        // Do nothing if user doesn't want to show query overlay
+        if (!showQueryOverlay) return;
 
-            queryOverlay
-                .selectAll('.targetOverlay')
-                .data([target, startNode])
-                .join('circle')
-                .attr('cx', (d) => getCoordinates(d).x)
-                .attr('cy', (d) => getCoordinates(d).y)
-                .attr('r', 10)
-                .attr('pointer-events', 'none')
-                .style('fill', (d, i) => `var(--${i === 1 ? 'green' : 'red'})`);
-        }
+        const queryOverlay = svg.append('g').attr('class', 'targetOverlay');
+
+        // Draw circles for target and startNode
+        queryOverlay
+            .selectAll('.targetOverlay')
+            .data([target, startNode])
+            .join('circle')
+            .attr('cx', (d) => getCoordinates(d).x)
+            .attr('cy', (d) => getCoordinates(d).y)
+            .attr('r', 10)
+            .attr('pointer-events', 'none')
+            .style('fill', (d, i) => `var(--${i === 1 ? 'green' : 'red'})`);
 
         return () => {
             svg.selectAll('.targetOverlay').remove();
