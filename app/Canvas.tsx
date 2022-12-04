@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { select } from 'd3';
+import { useControls } from 'leva';
 
 interface ChordNode {
     id: number;
@@ -20,20 +21,49 @@ export default function Canvas() {
     // Data about nodes in network
     const [nodesData, setNodesData] = useState<Array<ChordNode>>([]);
     // M used to calculate possible id space 2 ^ M
-    const [M, setM] = useState<number>(3);
-    // Query parameters
-    const [query, setQuery] = useState<{ target: number; startNode: number }>({
-        target: 4,
-        startNode: 0,
+
+    // Chart setup controls
+    const { M, curveType } = useControls('Chart setup', {
+        M: { value: 3, min: 2, max: 9, step: 1 },
+        curveType: {
+            label: 'Curve type',
+            options: {
+                'Curve (to Middle)': 0,
+                'Curve (to ID)': 1,
+                'Line (ID + Node)': 2,
+                'Line (Node only)': 3,
+                'Line (ID)': 4,
+            },
+        },
     });
 
-    // Chart
+    // Query controls
+    const { target, startNode } = useControls(
+        'Query',
+        {
+            target: {
+                label: 'Target node',
+                value: Math.pow(2, M) / 2,
+                min: 0,
+                max: Math.pow(2, M),
+                step: 1,
+            },
+            startNode: {
+                label: 'Starting node',
+                value: 0,
+                min: 0,
+                max: Math.pow(2, M),
+                step: 1,
+            },
+        },
+        [M]
+    );
+
     // Quantized angle increments for polar coordinates
     const theta = (2 * Math.PI) / Math.pow(2, M);
     // Radius from center the Chord graph's circle is
     const r = 400;
     // Type of curve for finger table lines
-    const [curveType, setCurveType] = useState<number>(0);
 
     const svgRef: any = useRef();
 
@@ -332,8 +362,6 @@ export default function Canvas() {
         if (right > left) {
             return left <= x && x < right;
         } else if (left > right) {
-            // 6  7  5
-            // 6  3  5
             return (
                 (left <= x && x < right + Math.pow(2, M)) ||
                 (left - Math.pow(2, M) <= x && x < right)
@@ -343,15 +371,13 @@ export default function Canvas() {
 
     // Create overlay based on query parameters
     useEffect(() => {
-        let route = [query.startNode];
-        let curr = query.startNode;
+        let route = [startNode];
+        let curr = startNode;
         let count = 0;
 
-        // While curr's keys doesn't include query.target
+        // While curr's keys doesn't include target
         while (
-            !nodesData
-                .find((x) => x.id === curr)
-                ?.keys.includes(query.target) &&
+            !nodesData.find((x) => x.id === curr)?.keys.includes(target) &&
             count++ < 10
         ) {
             let currFingerTable = nodesData.find(
@@ -364,7 +390,7 @@ export default function Canvas() {
                 if (
                     isWithinRange(
                         currFingerTable[i].start,
-                        query.target,
+                        target,
                         i != currFingerTable.length - 1
                             ? currFingerTable[i + 1].start
                             : curr
@@ -406,7 +432,7 @@ export default function Canvas() {
         return () => {
             svg.selectAll('.queryOverlay').remove();
         };
-    }, [query, nodesData]);
+    }, [target, startNode, nodesData]);
 
     useEffect(() => {
         const svg = select(svgRef.current);
@@ -415,7 +441,7 @@ export default function Canvas() {
 
         queryOverlay
             .selectAll('.targetOverlay')
-            .data([query.target, query.startNode])
+            .data([target, startNode])
             .join('circle')
             .attr('cx', (d) => getCoordinates(d).x)
             .attr('cy', (d) => getCoordinates(d).y)
@@ -426,7 +452,7 @@ export default function Canvas() {
         return () => {
             svg.selectAll('.targetOverlay').remove();
         };
-    }, [query, nodesData]);
+    }, [target, startNode, nodesData]);
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -437,64 +463,10 @@ export default function Canvas() {
                 style={{ overflow: 'visible' }}
             />
 
-            <button onClick={addNode}>Add node</button>
+            <div className="node-controls-container">
+                <button onClick={addNode}>Add node</button>
+            </div>
             <br />
-            <input
-                type="number"
-                value={M}
-                onChange={(e) => {
-                    setM(parseInt(e.target.value));
-                }}
-            />
-            <br />
-            <button
-                onClick={() => {
-                    setCurveType((curveType + 1) % 5);
-                }}
-            >
-                Change curve type {curveType}
-            </button>
-            <br />
-
-            <p>Target</p>
-            <input
-                type="number"
-                value={query.target}
-                onChange={(e) => {
-                    // Wrap around to stay within [0, 2^M)
-                    let newVal = parseInt(e.target.value);
-                    if (newVal < 0) {
-                        newVal = Math.pow(2, M) - 1;
-                    } else if (newVal > Math.pow(2, M) - 1) {
-                        newVal = 0;
-                    }
-
-                    setQuery({
-                        target: newVal,
-                        startNode: query.startNode,
-                    });
-                }}
-            />
-            <br />
-            <p>Start node</p>
-            <input
-                type="number"
-                value={query.startNode}
-                onChange={(e) => {
-                    // Wrap around to stay within [0, 2^M)
-                    let newVal = parseInt(e.target.value);
-                    if (newVal < 0) {
-                        newVal = Math.pow(2, M) - 1;
-                    } else if (newVal > Math.pow(2, M) - 1) {
-                        newVal = 0;
-                    }
-
-                    setQuery({
-                        target: query.target,
-                        startNode: newVal,
-                    });
-                }}
-            />
         </div>
     );
 }
