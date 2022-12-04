@@ -231,7 +231,7 @@ export default function Canvas() {
         if (nodeId === nodeIds[0]) {
             keys.push(-1);
             predecessor = nodeIds[nodeIds.length - 1];
-            let curr = (predecessor + 1) % Math.pow(2, M);
+            let curr = predecessor % Math.pow(2, M);
 
             while (curr++ % Math.pow(2, M) != 0) keys.push(curr);
             curr = 0;
