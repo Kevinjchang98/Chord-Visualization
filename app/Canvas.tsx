@@ -32,7 +32,7 @@ export default function Canvas() {
 
     // Chart setup controls
     const { M } = useControls('Chart setup', {
-        M: { value: 3, min: 2, max: 9, step: 1 },
+        M: { value: 4, min: 2, max: 9, step: 1 },
     });
 
     const { hoverOnly, curveType } = useControls('Finger table', {
@@ -297,33 +297,12 @@ export default function Canvas() {
                     nodes.selectAll('path').remove();
                     nodes.selectAll('text').remove();
                 }
+
                 // Change color of node circle
                 select('#id' + d.id).style('fill', 'var(--red)');
 
-                // Header row of finger table
-                nodes
-                    .append('text')
-                    .text('Start - Successor')
-                    .attr('fill', 'var(--light3)')
-                    .attr('id', 'text' + d.id)
-                    .attr('x', d.coords.x + 50)
-                    .attr('y', d.coords.y - 70)
-                    .attr('pointer-events', 'none');
-
-                // Each row of finger table
+                // Draw all connection lines
                 for (let i = 0; i < d.fingerTable.length; i++) {
-                    // Row text
-                    nodes
-                        .append('text')
-                        .text(
-                            `${d.fingerTable[i].start}  -  ${d.fingerTable[i].successor}`
-                        )
-                        .attr('fill', 'var(--light3)')
-                        .attr('id', 'text' + d.id)
-                        .attr('x', d.coords.x + 50)
-                        .attr('y', d.coords.y - 40 + 30 * i)
-                        .attr('pointer-events', 'none');
-
                     let curvePath;
 
                     switch (curveType) {
@@ -383,6 +362,45 @@ export default function Canvas() {
                         .attr('d', curvePath)
                         .attr('pointer-events', 'none');
                 }
+
+                // Header row of finger table
+                nodes
+                    .append('text')
+                    .text('Start - Successor')
+                    .attr('fill', 'var(--light3)')
+                    .attr('id', 'text' + d.id)
+                    .attr('x', d.coords.x + 50)
+                    .attr('y', d.coords.y - 70)
+                    .attr('pointer-events', 'none');
+
+                // Draw each row in finger table
+                for (let i = 0; i < d.fingerTable.length; i++) {
+                    // Row text
+                    nodes
+                        .append('text')
+                        .text(
+                            `${d.fingerTable[i].start}  -  ${d.fingerTable[i].successor}`
+                        )
+                        .attr('fill', 'var(--light3)')
+                        .attr('id', 'text' + d.id)
+                        .attr('x', d.coords.x + 50)
+                        .attr('y', d.coords.y - 40 + 30 * i)
+                        .attr('z-index', '5')
+                        .attr('pointer-events', 'none');
+                }
+
+                // Self ID
+                nodes
+                    .append('text')
+                    .text(d.id)
+                    .attr('fill', 'var(--light3)')
+                    .attr('id', 'text' + d.id)
+                    .attr('x', d.coords.x)
+                    .attr('y', d.coords.y)
+                    .attr('text-anchor', 'middle')
+                    .attr('dominant-baseline', 'middle')
+                    .attr('font-size', '1.5rem')
+                    .attr('pointer-events', 'none');
             })
             .on('mouseout', (e, d) => {
                 select('#id' + d.id).style('fill', 'var(--blue4)');
