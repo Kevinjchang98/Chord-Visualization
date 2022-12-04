@@ -10,6 +10,7 @@ interface ChordNode {
         y: number;
     };
     fingerTable: Array<{ start: number; successor: number }>;
+    keys: Array<number>;
 }
 
 export default function Canvas() {
@@ -69,6 +70,7 @@ export default function Canvas() {
                 id,
                 coords: getCoordinates(id),
                 fingerTable: [],
+                keys: [],
             },
         ]);
     };
@@ -80,6 +82,7 @@ export default function Canvas() {
 
             for (let i = 0; i < newData.length; i++) {
                 newData[i].fingerTable = generateFingerTable(newData[i].id);
+                newData[i].keys = generateKeys(newData[i].id);
             }
 
             return newData;
@@ -122,6 +125,40 @@ export default function Canvas() {
         }
 
         return fingerTable;
+    };
+
+    const generateKeys = (nodeId: number) => {
+        // TODO: Fix error in generating keys
+        let keys = [];
+
+        // If only node, this node keeps all keys
+        if (nodesData.length === 1) {
+            for (let i = 0; i < Math.pow(2, M); i++) keys.push(i);
+
+            return keys;
+        }
+
+        let nodeIds = nodesData.map((node) => node.id).sort();
+        let predecessor = nodeId;
+
+        // Get predecessor
+        if (nodeId === nodeIds[0]) {
+            keys.push(-1);
+            predecessor = nodeIds[nodeIds.length - 1];
+            let curr = (predecessor + 1) % Math.pow(2, M);
+
+            while (curr++ % Math.pow(2, M) != 0) keys.push(curr);
+            curr = 0;
+            keys.push(curr);
+            while (curr <= nodeId) keys.push(curr++);
+        } else {
+            predecessor = nodeIds[nodeIds.findIndex((i) => i == nodeId) - 1];
+            let curr = (predecessor + 1) % Math.pow(2, M);
+
+            while (curr <= nodeId) keys.push(curr++);
+        }
+
+        return keys;
     };
 
     // Draws graph axes and ticks
@@ -292,41 +329,58 @@ export default function Canvas() {
         };
     };
 
+    const isWithinRange = (left: number, x: number, right: number) => {
+        if (right > left) {
+            return left <= x && x < right;
+        } else if (left > right) {
+            // 6  7  5
+            // 6  3  5
+            return (
+                (left <= x && x < right + Math.pow(2, M)) ||
+                (left - Math.pow(2, M) <= x && x < right)
+            );
+        }
+    };
+
     // Create overlay based on query parameters
     useEffect(() => {
-        // TODO: Fix bug where it will cross circle when close
         let route = [query.startNode];
         let curr = query.startNode;
         let count = 0;
-        while (curr !== query.target && count++ < 10) {
+
+        console.log(nodesData);
+        console.log(nodesData.find((x) => x.id === curr)?.keys);
+
+        // While curr's keys doesn't include query.target
+        while (
+            !nodesData
+                .find((x) => x.id === curr)
+                ?.keys.includes(query.target) &&
+            count++ < 10
+        ) {
             let currFingerTable = nodesData.find(
-                (x) => x.id == curr
+                (x) => x.id === curr
             )?.fingerTable;
 
             if (!currFingerTable) return;
 
             for (let i = 0; i < currFingerTable.length; i++) {
                 if (
-                    currFingerTable[i].start <= query.target &&
-                    query.target <= currFingerTable[i].successor
+                    isWithinRange(
+                        currFingerTable[i].start,
+                        query.target,
+                        i != currFingerTable.length - 1
+                            ? currFingerTable[i + 1].start
+                            : curr
+                    )
                 ) {
-                    curr = currFingerTable[i].successor;
-                    route.push(curr);
-                    break;
-                } else if (
-                    i < currFingerTable.length - 1 &&
-                    currFingerTable[i].successor <= query.target &&
-                    query.target < currFingerTable[i + 1].start
-                ) {
-                    curr = currFingerTable[i].successor;
-                    route.push(curr);
-                    break;
-                } else if (i == currFingerTable.length - 1) {
                     curr = currFingerTable[i].successor;
                     route.push(curr);
                     break;
                 }
             }
+
+            // console.log(route);
         }
 
         const svg = select(svgRef.current);
@@ -352,10 +406,31 @@ export default function Canvas() {
             )
             .attr('stroke', 'var(--green)')
             .attr('fill', 'transparent')
+            .attr('pointer-events', 'none')
             .attr('stroke-width', '2px');
 
         return () => {
             svg.selectAll('.queryOverlay').remove();
+        };
+    }, [query, nodesData]);
+
+    useEffect(() => {
+        const svg = select(svgRef.current);
+
+        const queryOverlay = svg.append('g').attr('class', 'targetOverlay');
+
+        queryOverlay
+            .selectAll('.targetOverlay')
+            .data([query.target, query.startNode])
+            .join('circle')
+            .attr('cx', (d) => getCoordinates(d).x)
+            .attr('cy', (d) => getCoordinates(d).y)
+            .attr('r', 10)
+            .attr('pointer-events', 'none')
+            .style('fill', (d, i) => `var(--${i === 1 ? 'green' : 'red'})`);
+
+        return () => {
+            svg.selectAll('.targetOverlay').remove();
         };
     }, [query, nodesData]);
 
