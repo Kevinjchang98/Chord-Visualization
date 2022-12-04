@@ -38,9 +38,10 @@ export default function Canvas() {
     });
 
     // Query controls
-    const { target, startNode } = useControls(
+    const { showQueryOverlay, target, startNode } = useControls(
         'Query',
         {
+            showQueryOverlay: { label: 'Show', value: false },
             target: {
                 label: 'Target node',
                 value: Math.pow(2, M) / 2,
@@ -371,88 +372,92 @@ export default function Canvas() {
 
     // Create overlay based on query parameters
     useEffect(() => {
-        let route = [startNode];
-        let curr = startNode;
-        let count = 0;
-
-        // While curr's keys doesn't include target
-        while (
-            !nodesData.find((x) => x.id === curr)?.keys.includes(target) &&
-            count++ < 10
-        ) {
-            let currFingerTable = nodesData.find(
-                (x) => x.id === curr
-            )?.fingerTable;
-
-            if (!currFingerTable) return;
-
-            for (let i = 0; i < currFingerTable.length; i++) {
-                if (
-                    isWithinRange(
-                        currFingerTable[i].start,
-                        target,
-                        i != currFingerTable.length - 1
-                            ? currFingerTable[i + 1].start
-                            : curr
-                    )
-                ) {
-                    curr = currFingerTable[i].successor;
-                    route.push(curr);
-                    break;
-                }
-            }
-        }
-
         const svg = select(svgRef.current);
 
-        const queryOverlay = svg.append('g').attr('class', 'queryOverlay');
+        if (showQueryOverlay) {
+            let route = [startNode];
+            let curr = startNode;
+            let count = 0;
 
-        queryOverlay
-            .selectAll('.queryOverlay')
-            .data(route)
-            .join('path')
-            .attr(
-                'd',
-                (d, i) =>
-                    `M${
-                        i > 0
-                            ? getCoordinates(route[i - 1]).x
-                            : getCoordinates(d).x
-                    }  ${
-                        i > 0
-                            ? getCoordinates(route[i - 1]).y
-                            : getCoordinates(d).y
-                    } L ${getCoordinates(d).x} ${getCoordinates(d).y}`
-            )
-            .attr('stroke', 'var(--green)')
-            .attr('fill', 'transparent')
-            .attr('pointer-events', 'none')
-            .attr('stroke-width', '2px');
+            // While curr's keys doesn't include target
+            while (
+                !nodesData.find((x) => x.id === curr)?.keys.includes(target) &&
+                count++ < 10
+            ) {
+                let currFingerTable = nodesData.find(
+                    (x) => x.id === curr
+                )?.fingerTable;
+
+                if (!currFingerTable) return;
+
+                for (let i = 0; i < currFingerTable.length; i++) {
+                    if (
+                        isWithinRange(
+                            currFingerTable[i].start,
+                            target,
+                            i != currFingerTable.length - 1
+                                ? currFingerTable[i + 1].start
+                                : curr
+                        )
+                    ) {
+                        curr = currFingerTable[i].successor;
+                        route.push(curr);
+                        break;
+                    }
+                }
+            }
+
+            const queryOverlay = svg.append('g').attr('class', 'queryOverlay');
+
+            queryOverlay
+                .selectAll('.queryOverlay')
+                .data(route)
+                .join('path')
+                .attr(
+                    'd',
+                    (d, i) =>
+                        `M${
+                            i > 0
+                                ? getCoordinates(route[i - 1]).x
+                                : getCoordinates(d).x
+                        }  ${
+                            i > 0
+                                ? getCoordinates(route[i - 1]).y
+                                : getCoordinates(d).y
+                        } L ${getCoordinates(d).x} ${getCoordinates(d).y}`
+                )
+                .attr('stroke', 'var(--green)')
+                .attr('fill', 'transparent')
+                .attr('pointer-events', 'none')
+                .attr('stroke-width', '2px');
+        }
 
         return () => {
             svg.selectAll('.queryOverlay').remove();
         };
-    }, [target, startNode, nodesData]);
+    }, [target, startNode, nodesData, showQueryOverlay]);
 
     useEffect(() => {
         const svg = select(svgRef.current);
 
-        const queryOverlay = svg.append('g').attr('class', 'targetOverlay');
+        if (showQueryOverlay) {
+            const queryOverlay = svg.append('g').attr('class', 'targetOverlay');
 
-        queryOverlay
-            .selectAll('.targetOverlay')
-            .data([target, startNode])
-            .join('circle')
-            .attr('cx', (d) => getCoordinates(d).x)
-            .attr('cy', (d) => getCoordinates(d).y)
-            .attr('r', 10)
-            .attr('pointer-events', 'none')
-            .style('fill', (d, i) => `var(--${i === 1 ? 'green' : 'red'})`);
+            queryOverlay
+                .selectAll('.targetOverlay')
+                .data([target, startNode])
+                .join('circle')
+                .attr('cx', (d) => getCoordinates(d).x)
+                .attr('cy', (d) => getCoordinates(d).y)
+                .attr('r', 10)
+                .attr('pointer-events', 'none')
+                .style('fill', (d, i) => `var(--${i === 1 ? 'green' : 'red'})`);
+        }
 
         return () => {
             svg.selectAll('.targetOverlay').remove();
         };
-    }, [target, startNode, nodesData]);
+    }, [target, startNode, nodesData, showQueryOverlay]);
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column' }}>
