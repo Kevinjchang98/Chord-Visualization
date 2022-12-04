@@ -55,6 +55,12 @@ a {
     width: min(100vw, 75vh);
 }
 
+.leva-start {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+}
+
 button {
     color-scheme: dark;
     box-sizing: border-box;

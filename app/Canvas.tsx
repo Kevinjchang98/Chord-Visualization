@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { select } from 'd3';
-import { useControls } from 'leva';
+import { Leva, useControls } from 'leva';
 
 interface ChordNode {
     id: number;
@@ -55,7 +55,7 @@ export default function Canvas() {
         {
             showQueryOverlay: { label: 'Show', value: false },
             target: {
-                label: 'Target node',
+                label: 'Target ID',
                 value: Math.pow(2, M) / 2,
                 min: 0,
                 max: Math.pow(2, M),
@@ -503,6 +503,9 @@ export default function Canvas() {
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <div className="leva-start">
+                <Leva fill />
+            </div>
             <div className="chart-container">
                 <svg
                     ref={svgRef}
