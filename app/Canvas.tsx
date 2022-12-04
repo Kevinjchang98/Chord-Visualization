@@ -15,8 +15,9 @@ interface ChordNode {
 }
 
 export default function Canvas() {
+    // Ref to svg element used for graph
     const svgRef: any = useRef();
-    // Chord
+
     // Ticks around Chord chart circle
     const [ticks, setTicks] = useState<Array<String>>([]);
     // Data about nodes in network
@@ -24,17 +25,12 @@ export default function Canvas() {
     // M used to calculate possible id space 2 ^ M
     const [size, setSize] = useState<number>(1000);
 
-    const getSvgContainerSize = () => {
-        setSize(
-            Math.min(svgRef.current.clientWidth, svgRef.current.clientHeight)
-        );
-    };
-
     // Chart setup controls
     const { M } = useControls('Chart setup', {
         M: { value: 4, min: 2, max: 9, step: 1 },
     });
 
+    // Finger table controls
     const { hoverOnly, curveType } = useControls('Finger table', {
         hoverOnly: { label: 'Hover only', value: true },
         curveType: {
@@ -74,6 +70,13 @@ export default function Canvas() {
 
     // Quantized angle increments for polar coordinates
     const theta = (2 * Math.PI) / Math.pow(2, M);
+
+    // Gets size of svg element
+    const getSvgContainerSize = () => {
+        setSize(
+            Math.min(svgRef.current.clientWidth, svgRef.current.clientHeight)
+        );
+    };
 
     // Pay attention to svg size changes
     useEffect(() => {
