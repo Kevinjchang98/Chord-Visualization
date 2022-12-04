@@ -128,7 +128,6 @@ export default function Canvas() {
     };
 
     const generateKeys = (nodeId: number) => {
-        // TODO: Fix error in generating keys
         let keys = [];
 
         // If only node, this node keeps all keys
@@ -138,7 +137,7 @@ export default function Canvas() {
             return keys;
         }
 
-        let nodeIds = nodesData.map((node) => node.id).sort();
+        let nodeIds = nodesData.map((node) => node.id).sort((a, b) => a - b);
         let predecessor = nodeId;
 
         // Get predecessor
@@ -152,7 +151,7 @@ export default function Canvas() {
             keys.push(curr);
             while (curr <= nodeId) keys.push(curr++);
         } else {
-            predecessor = nodeIds[nodeIds.findIndex((i) => i == nodeId) - 1];
+            predecessor = nodeIds[nodeIds.findIndex((x) => x == nodeId) - 1];
             let curr = (predecessor + 1) % Math.pow(2, M);
 
             while (curr <= nodeId) keys.push(curr++);
@@ -348,9 +347,6 @@ export default function Canvas() {
         let curr = query.startNode;
         let count = 0;
 
-        console.log(nodesData);
-        console.log(nodesData.find((x) => x.id === curr)?.keys);
-
         // While curr's keys doesn't include query.target
         while (
             !nodesData
@@ -379,8 +375,6 @@ export default function Canvas() {
                     break;
                 }
             }
-
-            // console.log(route);
         }
 
         const svg = select(svgRef.current);
@@ -467,8 +461,16 @@ export default function Canvas() {
                 type="number"
                 value={query.target}
                 onChange={(e) => {
+                    // Wrap around to stay within [0, 2^M)
+                    let newVal = parseInt(e.target.value);
+                    if (newVal < 0) {
+                        newVal = Math.pow(2, M) - 1;
+                    } else if (newVal > Math.pow(2, M) - 1) {
+                        newVal = 0;
+                    }
+
                     setQuery({
-                        target: parseInt(e.target.value),
+                        target: newVal,
                         startNode: query.startNode,
                     });
                 }}
@@ -479,9 +481,17 @@ export default function Canvas() {
                 type="number"
                 value={query.startNode}
                 onChange={(e) => {
+                    // Wrap around to stay within [0, 2^M)
+                    let newVal = parseInt(e.target.value);
+                    if (newVal < 0) {
+                        newVal = Math.pow(2, M) - 1;
+                    } else if (newVal > Math.pow(2, M) - 1) {
+                        newVal = 0;
+                    }
+
                     setQuery({
                         target: query.target,
-                        startNode: parseInt(e.target.value),
+                        startNode: newVal,
                     });
                 }}
             />
