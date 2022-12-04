@@ -146,34 +146,6 @@ export default function Canvas() {
         }
     };
 
-    // Delete nodesData when M is changed
-    useEffect(() => {
-        setNodesData([]);
-    }, [M, size]);
-
-    // Regenerate ticks array when M is changed
-    useEffect(() => {
-        let ticks = [];
-        for (let i = 0; i < Math.pow(2, M); i++) {
-            ticks.push('');
-        }
-        setTicks(ticks);
-    }, [M]);
-
-    // Refresh finger tables when nodes change
-    useEffect(() => {
-        setNodesData((prev) => {
-            let newData = prev;
-
-            for (let i = 0; i < newData.length; i++) {
-                newData[i].fingerTable = generateFingerTable(newData[i].id);
-                newData[i].keys = generateKeys(newData[i].id);
-            }
-
-            return newData;
-        });
-    }, [nodesData]);
-
     // Generates the finger table for a given nodeId
     const generateFingerTable = (nodeId: number) => {
         let fingerTable = [];
@@ -246,6 +218,34 @@ export default function Canvas() {
 
         return keys;
     };
+
+    // Delete nodesData when M is changed
+    useEffect(() => {
+        setNodesData([]);
+    }, [M, size]);
+
+    // Regenerate ticks array when M is changed
+    useEffect(() => {
+        let ticks = [];
+        for (let i = 0; i < Math.pow(2, M); i++) {
+            ticks.push('');
+        }
+        setTicks(ticks);
+    }, [M]);
+
+    // Refresh finger tables when nodes change
+    useEffect(() => {
+        setNodesData((prev) => {
+            let newData = prev;
+
+            for (let i = 0; i < newData.length; i++) {
+                newData[i].fingerTable = generateFingerTable(newData[i].id);
+                newData[i].keys = generateKeys(newData[i].id);
+            }
+
+            return newData;
+        });
+    }, [nodesData]);
 
     // Draws graph axes and ticks
     useEffect(() => {
