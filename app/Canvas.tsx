@@ -128,6 +128,14 @@ export default function Canvas() {
         ]);
     };
 
+    const removeNode = () => {
+        setNodesData((prev) => {
+            let newData = [...prev];
+            newData.splice(Math.floor(Math.random() * newData.length), 1);
+            return newData;
+        });
+    };
+
     // Refresh finger tables when nodes change
     useEffect(() => {
         setNodesData((prev) => {
@@ -268,6 +276,7 @@ export default function Canvas() {
         };
     }, [ticks, M, size]);
 
+    // Draw nodes
     useEffect(() => {
         const svg = select(svgRef.current);
 
@@ -320,7 +329,7 @@ export default function Canvas() {
                     switch (curveType) {
                         case 0:
                             curvePath = `M ${d.coords.x} ${d.coords.y}
-                            Q (size / 2) (size / 2)
+                            Q ${size / 2} ${size / 2}
                               ${getCoordinates(d.fingerTable[i].successor).x}
                               ${getCoordinates(d.fingerTable[i].successor).y}`;
 
@@ -516,6 +525,7 @@ export default function Canvas() {
 
             <div className="node-controls-container">
                 <button onClick={addNode}>Add node</button>
+                <button onClick={removeNode}>Remove node</button>
             </div>
             <br />
         </div>
