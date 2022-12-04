@@ -10,6 +10,7 @@ interface ChordNode {
         y: number;
     };
     fingerTable: Array<{ start: number; successor: number }>;
+    keys: Array<number>;
 }
 
 export default function Canvas() {
@@ -20,12 +21,19 @@ export default function Canvas() {
     const [nodesData, setNodesData] = useState<Array<ChordNode>>([]);
     // M used to calculate possible id space 2 ^ M
     const [M, setM] = useState<number>(3);
+    // Query parameters
+    const [query, setQuery] = useState<{ target: number; startNode: number }>({
+        target: 4,
+        startNode: 0,
+    });
 
     // Chart
     // Quantized angle increments for polar coordinates
     const theta = (2 * Math.PI) / Math.pow(2, M);
     // Radius from center the Chord graph's circle is
     const r = 400;
+    // Type of curve for finger table lines
+    const [curveType, setCurveType] = useState<number>(0);
 
     const svgRef: any = useRef();
 
@@ -62,6 +70,7 @@ export default function Canvas() {
                 id,
                 coords: getCoordinates(id),
                 fingerTable: [],
+                keys: [],
             },
         ]);
     };
@@ -73,6 +82,7 @@ export default function Canvas() {
 
             for (let i = 0; i < newData.length; i++) {
                 newData[i].fingerTable = generateFingerTable(newData[i].id);
+                newData[i].keys = generateKeys(newData[i].id);
             }
 
             return newData;
@@ -117,6 +127,39 @@ export default function Canvas() {
         return fingerTable;
     };
 
+    const generateKeys = (nodeId: number) => {
+        let keys = [];
+
+        // If only node, this node keeps all keys
+        if (nodesData.length === 1) {
+            for (let i = 0; i < Math.pow(2, M); i++) keys.push(i);
+
+            return keys;
+        }
+
+        let nodeIds = nodesData.map((node) => node.id).sort((a, b) => a - b);
+        let predecessor = nodeId;
+
+        // Get predecessor
+        if (nodeId === nodeIds[0]) {
+            keys.push(-1);
+            predecessor = nodeIds[nodeIds.length - 1];
+            let curr = (predecessor + 1) % Math.pow(2, M);
+
+            while (curr++ % Math.pow(2, M) != 0) keys.push(curr);
+            curr = 0;
+            keys.push(curr);
+            while (curr <= nodeId) keys.push(curr++);
+        } else {
+            predecessor = nodeIds[nodeIds.findIndex((x) => x == nodeId) - 1];
+            let curr = (predecessor + 1) % Math.pow(2, M);
+
+            while (curr <= nodeId) keys.push(curr++);
+        }
+
+        return keys;
+    };
+
     // Draws graph axes and ticks
     useEffect(() => {
         const svg = select(svgRef.current);
@@ -128,7 +171,8 @@ export default function Canvas() {
             .attr('cx', '50%')
             .attr('cy', '50%')
             .attr('r', r)
-            .style('stroke', 'white');
+            .style('stroke', 'var(--light3)')
+            .style('fill', 'transparent');
 
         const axisTicks = svg.append('g').attr('class', 'axisTicks');
 
@@ -153,7 +197,9 @@ export default function Canvas() {
                 'y2',
                 (d, i) => (r + 10) * Math.sin(i * theta - Math.PI / 2) + 500
             )
-            .style('stroke', (d) => (d === '' ? 'white' : 'red'));
+            .style('stroke', (d) =>
+                d === '' ? 'var(--light3)' : 'var(--red)'
+            );
 
         // Remove all elements when needing to regenerate
         return () => {
@@ -174,19 +220,20 @@ export default function Canvas() {
             .attr('cx', (d) => d.coords.x)
             .attr('cy', (d) => d.coords.y)
             .attr('r', 20)
-            .style('fill', 'blue')
+            .style('fill', 'var(--blue4)')
             .on('mouseover', (e, d) => {
                 // Change color of node circle
-                select('#id' + d.id).style('fill', 'red');
+                select('#id' + d.id).style('fill', 'var(--red)');
 
                 // Header row of finger table
                 nodes
                     .append('text')
                     .text('Start - Successor')
-                    .attr('fill', 'white')
+                    .attr('fill', 'var(--light3)')
                     .attr('id', 'text' + d.id)
                     .attr('x', d.coords.x + 50)
-                    .attr('y', d.coords.y - 70);
+                    .attr('y', d.coords.y - 70)
+                    .attr('pointer-events', 'none');
 
                 // Each row of finger table
                 for (let i = 0; i < d.fingerTable.length; i++) {
@@ -196,36 +243,74 @@ export default function Canvas() {
                         .text(
                             `${d.fingerTable[i].start}  -  ${d.fingerTable[i].successor}`
                         )
-                        .attr('fill', 'white')
+                        .attr('fill', 'var(--light3)')
                         .attr('id', 'text' + d.id)
                         .attr('x', d.coords.x + 50)
-                        .attr('y', d.coords.y - 40 + 30 * i);
+                        .attr('y', d.coords.y - 40 + 30 * i)
+                        .attr('pointer-events', 'none');
 
-                    nodes
-                        .append('path')
-                        .attr('stroke', 'red')
-                        .attr('stroke-width', '2px')
-                        .attr('fill', 'transparent')
-                        .attr(
-                            // TODO: Let user choose curve type
-                            'd',
-                            `M ${d.coords.x} ${d.coords.y}
+                    let curvePath;
+
+                    switch (curveType) {
+                        case 0:
+                            curvePath = `M ${d.coords.x} ${d.coords.y}
+                            Q 500 500
+                              ${getCoordinates(d.fingerTable[i].successor).x}
+                              ${getCoordinates(d.fingerTable[i].successor).y}`;
+
+                            break;
+
+                        case 1:
+                            curvePath = `M ${d.coords.x} ${d.coords.y}
                             Q ${getCoordinates(d.fingerTable[i].start).x} 
                               ${getCoordinates(d.fingerTable[i].start).y}
                               ${getCoordinates(d.fingerTable[i].successor).x}
-                              ${getCoordinates(d.fingerTable[i].successor).y}`
-                        );
-                    // .attr(
-                    //     'd',
-                    //     `M ${d.coords.x} ${d.coords.y}
-                    //     Q 500 500 ${
-                    //         getCoordinates(d.fingerTable[i].successor).x
-                    //     } ${getCoordinates(d.fingerTable[i].successor).y}`
-                    // );
+                              ${getCoordinates(d.fingerTable[i].successor).y}`;
+
+                            break;
+
+                        case 2:
+                            curvePath = `M ${d.coords.x} ${d.coords.y}
+                            L ${getCoordinates(d.fingerTable[i].start).x} 
+                              ${getCoordinates(d.fingerTable[i].start).y}
+                            L
+                              ${getCoordinates(d.fingerTable[i].successor).x}
+                              ${getCoordinates(d.fingerTable[i].successor).y}`;
+
+                            break;
+
+                        case 3:
+                            curvePath = `M ${d.coords.x} ${d.coords.y}
+                            L
+                              ${getCoordinates(d.fingerTable[i].successor).x}
+                              ${getCoordinates(d.fingerTable[i].successor).y}`;
+
+                            break;
+
+                        case 4:
+                            curvePath = `M ${d.coords.x} ${d.coords.y}
+                            L
+                              ${getCoordinates(d.fingerTable[i].start).x}
+                              ${getCoordinates(d.fingerTable[i].start).y}`;
+
+                            break;
+
+                        default:
+                            curvePath = '';
+                            break;
+                    }
+
+                    nodes
+                        .append('path')
+                        .attr('stroke', 'var(--red)')
+                        .attr('stroke-width', '2px')
+                        .attr('fill', 'transparent')
+                        .attr('d', curvePath)
+                        .attr('pointer-events', 'none');
                 }
             })
             .on('mouseout', (e, d) => {
-                select('#id' + d.id).style('fill', 'blue');
+                select('#id' + d.id).style('fill', 'var(--blue4)');
                 nodes.selectAll('text').remove();
                 nodes.selectAll('path').remove();
             });
@@ -234,7 +319,7 @@ export default function Canvas() {
         return () => {
             svg.selectAll('.nodes').remove();
         };
-    }, [nodesData]);
+    }, [nodesData, curveType]);
 
     const getCoordinates = (nodeId: number) => {
         return {
@@ -242,6 +327,106 @@ export default function Canvas() {
             y: r * Math.sin(nodeId * theta - Math.PI / 2) + 500,
         };
     };
+
+    const isWithinRange = (left: number, x: number, right: number) => {
+        if (right > left) {
+            return left <= x && x < right;
+        } else if (left > right) {
+            // 6  7  5
+            // 6  3  5
+            return (
+                (left <= x && x < right + Math.pow(2, M)) ||
+                (left - Math.pow(2, M) <= x && x < right)
+            );
+        }
+    };
+
+    // Create overlay based on query parameters
+    useEffect(() => {
+        let route = [query.startNode];
+        let curr = query.startNode;
+        let count = 0;
+
+        // While curr's keys doesn't include query.target
+        while (
+            !nodesData
+                .find((x) => x.id === curr)
+                ?.keys.includes(query.target) &&
+            count++ < 10
+        ) {
+            let currFingerTable = nodesData.find(
+                (x) => x.id === curr
+            )?.fingerTable;
+
+            if (!currFingerTable) return;
+
+            for (let i = 0; i < currFingerTable.length; i++) {
+                if (
+                    isWithinRange(
+                        currFingerTable[i].start,
+                        query.target,
+                        i != currFingerTable.length - 1
+                            ? currFingerTable[i + 1].start
+                            : curr
+                    )
+                ) {
+                    curr = currFingerTable[i].successor;
+                    route.push(curr);
+                    break;
+                }
+            }
+        }
+
+        const svg = select(svgRef.current);
+
+        const queryOverlay = svg.append('g').attr('class', 'queryOverlay');
+
+        queryOverlay
+            .selectAll('.queryOverlay')
+            .data(route)
+            .join('path')
+            .attr(
+                'd',
+                (d, i) =>
+                    `M${
+                        i > 0
+                            ? getCoordinates(route[i - 1]).x
+                            : getCoordinates(d).x
+                    }  ${
+                        i > 0
+                            ? getCoordinates(route[i - 1]).y
+                            : getCoordinates(d).y
+                    } L ${getCoordinates(d).x} ${getCoordinates(d).y}`
+            )
+            .attr('stroke', 'var(--green)')
+            .attr('fill', 'transparent')
+            .attr('pointer-events', 'none')
+            .attr('stroke-width', '2px');
+
+        return () => {
+            svg.selectAll('.queryOverlay').remove();
+        };
+    }, [query, nodesData]);
+
+    useEffect(() => {
+        const svg = select(svgRef.current);
+
+        const queryOverlay = svg.append('g').attr('class', 'targetOverlay');
+
+        queryOverlay
+            .selectAll('.targetOverlay')
+            .data([query.target, query.startNode])
+            .join('circle')
+            .attr('cx', (d) => getCoordinates(d).x)
+            .attr('cy', (d) => getCoordinates(d).y)
+            .attr('r', 10)
+            .attr('pointer-events', 'none')
+            .style('fill', (d, i) => `var(--${i === 1 ? 'green' : 'red'})`);
+
+        return () => {
+            svg.selectAll('.targetOverlay').remove();
+        };
+    }, [query, nodesData]);
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -253,11 +438,61 @@ export default function Canvas() {
             />
 
             <button onClick={addNode}>Add node</button>
+            <br />
             <input
                 type="number"
                 value={M}
                 onChange={(e) => {
                     setM(parseInt(e.target.value));
+                }}
+            />
+            <br />
+            <button
+                onClick={() => {
+                    setCurveType((curveType + 1) % 5);
+                }}
+            >
+                Change curve type {curveType}
+            </button>
+            <br />
+
+            <p>Target</p>
+            <input
+                type="number"
+                value={query.target}
+                onChange={(e) => {
+                    // Wrap around to stay within [0, 2^M)
+                    let newVal = parseInt(e.target.value);
+                    if (newVal < 0) {
+                        newVal = Math.pow(2, M) - 1;
+                    } else if (newVal > Math.pow(2, M) - 1) {
+                        newVal = 0;
+                    }
+
+                    setQuery({
+                        target: newVal,
+                        startNode: query.startNode,
+                    });
+                }}
+            />
+            <br />
+            <p>Start node</p>
+            <input
+                type="number"
+                value={query.startNode}
+                onChange={(e) => {
+                    // Wrap around to stay within [0, 2^M)
+                    let newVal = parseInt(e.target.value);
+                    if (newVal < 0) {
+                        newVal = Math.pow(2, M) - 1;
+                    } else if (newVal > Math.pow(2, M) - 1) {
+                        newVal = 0;
+                    }
+
+                    setQuery({
+                        target: query.target,
+                        startNode: newVal,
+                    });
                 }}
             />
         </div>
